@@ -1,0 +1,51 @@
+import { useFonts } from 'expo-font';
+import { Stack } from 'expo-router';
+import * as SplashScreen from 'expo-splash-screen';
+import { StatusBar } from 'expo-status-bar';
+import { useEffect } from 'react';
+import { StyleSheet } from 'react-native';
+
+// Prevent the splash screen from auto-hiding before asset loading is complete.
+SplashScreen.preventAutoHideAsync();
+
+export default function RootLayout() {
+  const [loaded] = useFonts({
+    SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
+  });
+
+  useEffect(() => {
+    if (loaded) {
+      SplashScreen.hideAsync();
+    }
+  }, [loaded]);
+
+  if (!loaded) {
+    return null;
+  }
+
+  return (
+    <>
+      <StatusBar style="light" backgroundColor="#2E2C58" />
+      <Stack
+        screenOptions={{
+          headerShown: false,
+          contentStyle: styles.container,
+        }}
+      >
+        <Stack.Screen name="index" />
+        <Stack.Screen name="paywall" />
+        <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="goal-selection" />
+        <Stack.Screen name="calendar" />
+        <Stack.Screen name="review" />
+        <Stack.Screen name="confirmation" />
+      </Stack>
+    </>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    backgroundColor: '#2E2C58',
+  },
+});
