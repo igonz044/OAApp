@@ -18,13 +18,16 @@ export default function SettingsScreen() {
   const handleSignOut = () => {
     Alert.alert(
       'Sign Out',
-      'Are you sure you want to sign out?',
+      'Are you sure you want to sign out? You will need to log in again to access your account.',
       [
         { text: 'Cancel', style: 'cancel' },
         { 
           text: 'Sign Out', 
           style: 'destructive',
-          onPress: () => router.push('/') 
+          onPress: () => {
+            console.log('User confirmed sign out, navigating to login...');
+            router.replace('/');
+          }
         }
       ]
     );

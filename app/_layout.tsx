@@ -4,6 +4,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import { StyleSheet } from 'react-native';
+import { initializeTimezone } from '../utils/timezone';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -16,6 +17,8 @@ export default function RootLayout() {
   useEffect(() => {
     if (loaded) {
       SplashScreen.hideAsync();
+      // Initialize timezone when app loads
+      initializeTimezone().catch(console.error);
     }
   }, [loaded]);
 
@@ -36,6 +39,7 @@ export default function RootLayout() {
         <Stack.Screen name="paywall" />
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="goal-selection" />
+        <Stack.Screen name="session-type" />
         <Stack.Screen name="calendar" />
         <Stack.Screen name="review" />
         <Stack.Screen name="confirmation" />

@@ -24,7 +24,7 @@ export default function GoalSelectionScreen() {
       return;
     }
     // In a real app, you would store this selection
-    router.push('/calendar');
+    router.push('/session-type');
   };
 
   const handleBack = () => {
