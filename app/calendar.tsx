@@ -10,6 +10,7 @@ import {
     View,
 } from 'react-native';
 import { formatTimeInTimezone } from '../utils/timezone';
+import { useSession } from '../utils/sessionContext';
 
 type DateOption = {
   id: string;
@@ -24,12 +25,16 @@ type TimeSlot = {
   fullDate: Date;
 };
 
+type RecurringOption = 'none' | 'daily' | 'weekly' | 'monthly';
+
 export default function CalendarScreen() {
   const [selectedDate, setSelectedDate] = useState<string>('');
   const [selectedTime, setSelectedTime] = useState<string>('');
+  const [selectedRecurring, setSelectedRecurring] = useState<RecurringOption>('none');
   const [currentWeek, setCurrentWeek] = useState(0); // 0 = current week, 1 = next week, etc.
   const [dateOptions, setDateOptions] = useState<DateOption[]>([]);
   const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([]);
+  const { sessionData, setSessionData } = useSession();
 
   // Generate dates for the current week
   useEffect(() => {
@@ -88,6 +93,7 @@ export default function CalendarScreen() {
   const handleDateSelect = (dateId: string) => {
     setSelectedDate(dateId);
     setSelectedTime(''); // Reset time when date changes
+    setSelectedRecurring('none'); // Reset recurring when date changes
     
     const selectedDateObj = dateOptions.find(option => option.id === dateId)?.fullDate;
     if (selectedDateObj) {
@@ -97,6 +103,10 @@ export default function CalendarScreen() {
 
   const handleTimeSelect = (timeId: string) => {
     setSelectedTime(timeId);
+  };
+
+  const handleRecurringSelect = (option: RecurringOption) => {
+    setSelectedRecurring(option);
   };
 
   const handleNext = () => {
@@ -109,15 +119,31 @@ export default function CalendarScreen() {
     const selectedTimeObj = timeSlots.find(slot => slot.time === selectedTime)?.fullDate;
     
     if (selectedDateObj && selectedTimeObj) {
-      console.log('Selected date/time:', {
-        date: selectedDateObj.toISOString(),
-        time: selectedTimeObj.toISOString(),
-        displayTime: formatTimeInTimezone(selectedTimeObj)
+      const displayTime = formatTimeInTimezone(selectedTimeObj);
+      const dateLabel = selectedDateObj.toLocaleDateString('en-US', { 
+        weekday: 'short', 
+        month: 'short', 
+        day: 'numeric' 
+      });
+      
+      // Update session data with calendar selections
+      setSessionData({
+        ...sessionData!,
+        date: dateLabel,
+        time: displayTime,
+        recurring: selectedRecurring,
+        fullDate: selectedDateObj,
+        displayTime: displayTime,
+      });
+      
+      console.log('Updated session data:', {
+        date: dateLabel,
+        time: displayTime,
+        recurring: selectedRecurring
       });
     }
     
-    // In a real app, you would store these selections
-    router.push('/review');
+    router.push('/session-type');
   };
 
   const handleBack = () => {
@@ -129,6 +155,7 @@ export default function CalendarScreen() {
       setCurrentWeek(currentWeek - 1);
       setSelectedDate(''); // Reset selection when changing weeks
       setSelectedTime('');
+      setSelectedRecurring('none');
     }
   };
 
@@ -137,6 +164,7 @@ export default function CalendarScreen() {
     setCurrentWeek(currentWeek + 1);
     setSelectedDate(''); // Reset selection when changing weeks
     setSelectedTime('');
+    setSelectedRecurring('none');
   };
 
   const formatWeekRange = () => {
@@ -165,6 +193,13 @@ export default function CalendarScreen() {
     if (currentWeek === 1) return 'Next Week';
     return `Week ${currentWeek + 1}`;
   };
+
+  const recurringOptions = [
+    { id: 'none' as RecurringOption, label: 'One-time session', emoji: '📅' },
+    { id: 'daily' as RecurringOption, label: 'Daily', emoji: '🌅' },
+    { id: 'weekly' as RecurringOption, label: 'Weekly', emoji: '📆' },
+    { id: 'monthly' as RecurringOption, label: 'Monthly', emoji: '🗓️' },
+  ];
 
   return (
     <SafeAreaView style={styles.container}>
@@ -249,6 +284,32 @@ export default function CalendarScreen() {
                     selectedTime === timeSlot.time && styles.timeSlotTextSelected,
                   ]}>
                     {timeSlot.displayTime}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        )}
+
+        {selectedDate && selectedTime && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Recurring Options</Text>
+            <View style={styles.recurringOptions}>
+              {recurringOptions.map((option) => (
+                <TouchableOpacity
+                  key={option.id}
+                  style={[
+                    styles.recurringOption,
+                    selectedRecurring === option.id && styles.recurringOptionSelected,
+                  ]}
+                  onPress={() => handleRecurringSelect(option.id)}
+                >
+                  <Text style={styles.recurringEmoji}>{option.emoji}</Text>
+                  <Text style={[
+                    styles.recurringLabel,
+                    selectedRecurring === option.id && styles.recurringLabelSelected,
+                  ]}>
+                    {option.label}
                   </Text>
                 </TouchableOpacity>
               ))}
@@ -455,5 +516,40 @@ const styles = StyleSheet.create({
   },
   btnDisabledText: {
     color: '#9CA3AF',
+  },
+  recurringOptions: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    flexWrap: 'wrap',
+    gap: 10,
+    marginTop: 15,
+  },
+  recurringOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    borderRadius: 12,
+    backgroundColor: 'rgba(196, 184, 221, 0.1)',
+    borderWidth: 1,
+    borderColor: '#C4B8DD',
+    minWidth: '45%', // Adjust as needed for spacing
+  },
+  recurringOptionSelected: {
+    backgroundColor: '#E0C68B',
+    borderColor: '#E0C68B',
+  },
+  recurringEmoji: {
+    fontSize: 24,
+    marginRight: 10,
+  },
+  recurringLabel: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#F9F8F4',
+  },
+  recurringLabelSelected: {
+    color: '#2E2C58',
+    fontWeight: 'bold',
   },
 }); 

@@ -8,10 +8,48 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
+import { useSessions } from '../../utils/sessionsContext';
 
 export default function CoachScreen() {
+  const { getUpcomingSessions, getCompletedSessions } = useSessions();
+  
+  const upcomingSessions = getUpcomingSessions();
+  const completedSessions = getCompletedSessions();
+
   const handleScheduleNewCoaching = () => {
     router.push('/goal-selection');
+  };
+
+  const formatSessionTime = (session: any) => {
+    const now = new Date();
+    const sessionDate = session.fullDate;
+    const diffTime = sessionDate.getTime() - now.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    if (diffDays === 0) {
+      return `Today, ${session.time}`;
+    } else if (diffDays === 1) {
+      return `Tomorrow, ${session.time}`;
+    } else if (diffDays < 7) {
+      return `${sessionDate.toLocaleDateString('en-US', { weekday: 'long' })}, ${session.time}`;
+    } else {
+      return `${sessionDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}, ${session.time}`;
+    }
+  };
+
+  const formatCompletedTime = (session: any) => {
+    const sessionDate = session.fullDate;
+    const now = new Date();
+    const diffTime = now.getTime() - sessionDate.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    if (diffDays === 1) {
+      return `Yesterday, ${session.time}`;
+    } else if (diffDays < 7) {
+      return `${diffDays} days ago, ${session.time}`;
+    } else {
+      return `${sessionDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}, ${session.time}`;
+    }
   };
 
   return (
@@ -24,22 +62,43 @@ export default function CoachScreen() {
         <View style={styles.content}>
           <View style={styles.coachSection}>
             <Text style={styles.sectionTitle}>Upcoming Sessions</Text>
-            <View style={styles.sessionCard}>
-              <Text style={styles.sessionTopic}>Study Habits Improvement</Text>
-              <Text style={styles.sessionTime}>Tomorrow, 2:00 PM</Text>
-            </View>
-            <View style={styles.sessionCard}>
-              <Text style={styles.sessionTopic}>Exercise Planning</Text>
-              <Text style={styles.sessionTime}>Friday, 10:00 AM</Text>
-            </View>
+            {upcomingSessions.length > 0 ? (
+              upcomingSessions.map((session) => (
+                <View key={session.id} style={styles.sessionCard}>
+                  <Text style={styles.sessionTopic}>{session.goal}</Text>
+                  <Text style={styles.sessionTime}>{formatSessionTime(session)}</Text>
+                  <Text style={styles.sessionType}>
+                    {session.sessionType === 'call' ? '📞 Voice Call' : '💬 Text Chat'}
+                    {session.recurring !== 'none' && ` • ${session.recurring.charAt(0).toUpperCase() + session.recurring.slice(1)}`}
+                  </Text>
+                </View>
+              ))
+            ) : (
+              <View style={styles.emptyState}>
+                <Text style={styles.emptyStateText}>No upcoming sessions</Text>
+                <Text style={styles.emptyStateSubtext}>Schedule your first coaching session to get started!</Text>
+              </View>
+            )}
           </View>
           
           <View style={styles.coachSection}>
             <Text style={styles.sectionTitle}>Previous Sessions</Text>
-            <View style={styles.sessionCard}>
-              <Text style={styles.sessionTopic}>Procrastination Solutions</Text>
-              <Text style={styles.sessionTime}>Last Monday, 3:00 PM</Text>
-            </View>
+            {completedSessions.length > 0 ? (
+              completedSessions.slice(0, 5).map((session) => (
+                <View key={session.id} style={[styles.sessionCard, styles.completedSession]}>
+                  <Text style={styles.sessionTopic}>{session.goal}</Text>
+                  <Text style={styles.sessionTime}>{formatCompletedTime(session)}</Text>
+                  <Text style={styles.sessionType}>
+                    {session.sessionType === 'call' ? '📞 Voice Call' : '💬 Text Chat'}
+                  </Text>
+                </View>
+              ))
+            ) : (
+              <View style={styles.emptyState}>
+                <Text style={styles.emptyStateText}>No previous sessions</Text>
+                <Text style={styles.emptyStateSubtext}>Your completed sessions will appear here</Text>
+              </View>
+            )}
           </View>
           
           <TouchableOpacity 
@@ -92,6 +151,10 @@ const styles = StyleSheet.create({
     borderLeftWidth: 4,
     borderLeftColor: '#E0C68B',
   },
+  completedSession: {
+    borderLeftColor: '#6B7280',
+    opacity: 0.7,
+  },
   sessionTopic: {
     fontWeight: 'bold',
     color: '#F9F8F4',
@@ -101,6 +164,33 @@ const styles = StyleSheet.create({
   sessionTime: {
     color: '#C4B8DD',
     fontSize: 14,
+    marginBottom: 3,
+  },
+  sessionType: {
+    color: '#C4B8DD',
+    fontSize: 12,
+    fontStyle: 'italic',
+  },
+  emptyState: {
+    backgroundColor: 'rgba(196, 184, 221, 0.05)',
+    padding: 20,
+    borderRadius: 12,
+    alignItems: 'center',
+    borderStyle: 'dashed',
+    borderWidth: 1,
+    borderColor: 'rgba(196, 184, 221, 0.3)',
+  },
+  emptyStateText: {
+    color: '#C4B8DD',
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 5,
+  },
+  emptyStateSubtext: {
+    color: '#C4B8DD',
+    fontSize: 14,
+    textAlign: 'center',
+    opacity: 0.8,
   },
   btnPrimary: {
     width: '100%',

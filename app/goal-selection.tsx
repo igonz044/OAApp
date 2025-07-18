@@ -8,11 +8,13 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
+import { useSession } from '../utils/sessionContext';
 
 type Goal = 'exercise' | 'study' | 'eat' | 'hydrate' | '';
 
 export default function GoalSelectionScreen() {
   const [selectedGoal, setSelectedGoal] = useState<Goal>('');
+  const { setSessionData } = useSession();
 
   const handleGoalSelect = (goal: Goal) => {
     setSelectedGoal(goal);
@@ -23,8 +25,18 @@ export default function GoalSelectionScreen() {
       Alert.alert('Please select a goal', 'You need to choose a wellness goal to continue.');
       return;
     }
-    // In a real app, you would store this selection
-    router.push('/session-type');
+    
+    // Store the goal in session context
+    const goalLabel = goals.find(g => g.id === selectedGoal)?.title || selectedGoal;
+    setSessionData({
+      goal: goalLabel,
+      date: '',
+      time: '',
+      recurring: 'none',
+      sessionType: 'chat',
+    });
+    
+    router.push('/calendar');
   };
 
   const handleBack = () => {

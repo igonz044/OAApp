@@ -8,9 +8,30 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
+import { useSession } from '../utils/sessionContext';
+import { useSessions } from '../utils/sessionsContext';
 
 export default function ReviewScreen() {
+  const { sessionData, clearSessionData } = useSession();
+  const { addSession } = useSessions();
+
   const handleApprove = () => {
+    if (sessionData) {
+      // Add the session to the sessions list
+      addSession({
+        goal: sessionData.goal,
+        date: sessionData.date,
+        time: sessionData.time,
+        recurring: sessionData.recurring,
+        sessionType: sessionData.sessionType,
+        fullDate: sessionData.fullDate!,
+        displayTime: sessionData.displayTime!,
+      });
+      
+      console.log('Session approved and added:', sessionData);
+    }
+    
+    clearSessionData(); // Clear the session data after approval
     router.push('/confirmation');
   };
 
@@ -18,12 +39,39 @@ export default function ReviewScreen() {
     router.back();
   };
 
-  // In a real app, these would come from app state/context
-  const sessionDetails = {
-    goal: 'Exercise',
-    date: 'Wed 17',
-    time: '2:00 PM',
+  const getRecurringLabel = (recurring: string) => {
+    switch (recurring) {
+      case 'none': return 'One-time session';
+      case 'daily': return 'Daily';
+      case 'weekly': return 'Weekly';
+      case 'monthly': return 'Monthly';
+      default: return recurring;
+    }
   };
+
+  const getSessionTypeLabel = (type: string) => {
+    switch (type) {
+      case 'call': return 'Voice Call';
+      case 'chat': return 'Text Chat';
+      default: return type;
+    }
+  };
+
+  if (!sessionData) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.header}>
+          <Text style={styles.screenTitle}>No Session Data</Text>
+        </View>
+        <View style={styles.content}>
+          <Text style={styles.errorText}>No session data found. Please start over.</Text>
+          <TouchableOpacity style={styles.btnPrimary} onPress={() => router.push('/goal-selection')}>
+            <Text style={styles.btnPrimaryText}>Start Over</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -33,6 +81,7 @@ export default function ReviewScreen() {
       
       <View style={styles.header}>
         <Text style={styles.screenTitle}>Review & Approve</Text>
+        <Text style={styles.subtitle}>Please review your session details before confirming</Text>
       </View>
       
       <ScrollView style={styles.content}>
@@ -41,22 +90,32 @@ export default function ReviewScreen() {
           
           <View style={styles.detailRow}>
             <Text style={styles.detailLabel}>Goal:</Text>
-            <Text style={styles.detailValue}>{sessionDetails.goal}</Text>
+            <Text style={styles.detailValue}>{sessionData.goal}</Text>
           </View>
           
           <View style={styles.detailRow}>
             <Text style={styles.detailLabel}>Date:</Text>
-            <Text style={styles.detailValue}>{sessionDetails.date}</Text>
+            <Text style={styles.detailValue}>{sessionData.date}</Text>
           </View>
           
           <View style={styles.detailRow}>
             <Text style={styles.detailLabel}>Time:</Text>
-            <Text style={styles.detailValue}>{sessionDetails.time}</Text>
+            <Text style={styles.detailValue}>{sessionData.time}</Text>
+          </View>
+          
+          <View style={styles.detailRow}>
+            <Text style={styles.detailLabel}>Recurring:</Text>
+            <Text style={styles.detailValue}>{getRecurringLabel(sessionData.recurring)}</Text>
+          </View>
+          
+          <View style={styles.detailRow}>
+            <Text style={styles.detailLabel}>Session Type:</Text>
+            <Text style={styles.detailValue}>{getSessionTypeLabel(sessionData.sessionType)}</Text>
           </View>
         </View>
         
         <TouchableOpacity style={styles.btnPrimary} onPress={handleApprove}>
-          <Text style={styles.btnPrimaryText}>Approve</Text>
+          <Text style={styles.btnPrimaryText}>Approve & Schedule</Text>
         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
@@ -90,6 +149,12 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: 'bold',
     textAlign: 'center',
+    marginBottom: 8,
+  },
+  subtitle: {
+    color: '#C4B8DD',
+    fontSize: 16,
+    textAlign: 'center',
   },
   content: {
     flex: 1,
@@ -110,7 +175,8 @@ const styles = StyleSheet.create({
   detailRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 10,
+    marginBottom: 12,
+    paddingVertical: 4,
   },
   detailLabel: {
     fontWeight: 'bold',
@@ -120,6 +186,15 @@ const styles = StyleSheet.create({
   detailValue: {
     color: '#C4B8DD',
     fontSize: 16,
+    textAlign: 'right',
+    flex: 1,
+    marginLeft: 10,
+  },
+  errorText: {
+    color: '#EF4444',
+    fontSize: 16,
+    textAlign: 'center',
+    marginBottom: 20,
   },
   btnPrimary: {
     width: '100%',

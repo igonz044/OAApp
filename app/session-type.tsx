@@ -8,11 +8,13 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
+import { useSession } from '../utils/sessionContext';
 
-type SessionType = 'text' | 'voice' | '';
+type SessionType = 'call' | 'chat' | '';
 
 export default function SessionTypeScreen() {
   const [selectedType, setSelectedType] = useState<SessionType>('');
+  const { sessionData, setSessionData } = useSession();
 
   const handleTypeSelect = (type: SessionType) => {
     setSelectedType(type);
@@ -23,8 +25,14 @@ export default function SessionTypeScreen() {
       Alert.alert('Please select a session type', 'You need to choose how you want to communicate with your coach.');
       return;
     }
-    // In a real app, you would store this selection
-    router.push('/calendar');
+    
+    // Update session data with session type
+    setSessionData({
+      ...sessionData!,
+      sessionType: selectedType,
+    });
+    
+    router.push('/review');
   };
 
   const handleBack = () => {
@@ -33,18 +41,18 @@ export default function SessionTypeScreen() {
 
   const sessionTypes = [
     { 
-      id: 'text' as SessionType, 
+      id: 'chat' as SessionType, 
       emoji: '💬', 
       title: 'Text Chat', 
       description: 'Type messages with your AI coach',
-      features: ['Real-time messaging', 'Easy to review', 'No background noise']
+      features: ['Real-time messaging', 'Easy to review', 'No background noise', 'Perfect for detailed discussions']
     },
     { 
-      id: 'voice' as SessionType, 
-      emoji: '🎤', 
-      title: 'Voice Chat', 
+      id: 'call' as SessionType, 
+      emoji: '📞', 
+      title: 'Voice Call', 
       description: 'Speak directly with your AI coach',
-      features: ['Natural conversation', 'Faster communication', 'Voice recognition']
+      features: ['Natural conversation', 'Faster communication', 'Voice recognition', 'More personal interaction']
     },
   ];
 
@@ -55,7 +63,7 @@ export default function SessionTypeScreen() {
       </TouchableOpacity>
       
       <View style={styles.header}>
-        <Text style={styles.screenTitle}>How would you like to chat?</Text>
+        <Text style={styles.screenTitle}>How would you like to connect?</Text>
         <Text style={styles.subtitle}>Choose your preferred communication method</Text>
       </View>
       
@@ -102,7 +110,7 @@ export default function SessionTypeScreen() {
             styles.btnPrimaryText,
             !selectedType && styles.btnDisabledText,
           ]}>
-            Next
+            Review & Confirm
           </Text>
         </TouchableOpacity>
       </View>
