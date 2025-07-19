@@ -7,6 +7,7 @@ import { StyleSheet } from 'react-native';
 import { initializeTimezone } from '../utils/timezone';
 import { SessionProvider } from '../utils/sessionContext';
 import { SessionsProvider } from '../utils/sessionsContext';
+import { PaymentProvider } from '../utils/paymentContext';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -29,26 +30,29 @@ export default function RootLayout() {
   }
 
   return (
-    <SessionProvider>
-      <SessionsProvider>
-        <StatusBar style="light" backgroundColor="#2E2C58" />
-        <Stack
-          screenOptions={{
-            headerShown: false,
-            contentStyle: styles.container,
-          }}
-        >
-          <Stack.Screen name="index" />
-          <Stack.Screen name="paywall" />
-          <Stack.Screen name="(tabs)" />
-          <Stack.Screen name="goal-selection" />
-          <Stack.Screen name="session-type" />
-          <Stack.Screen name="calendar" />
-          <Stack.Screen name="review" />
-          <Stack.Screen name="confirmation" />
-        </Stack>
-      </SessionsProvider>
-    </SessionProvider>
+    <PaymentProvider>
+      <SessionProvider>
+        <SessionsProvider>
+          <StatusBar style="light" backgroundColor="#2E2C58" />
+          <Stack
+            screenOptions={{
+              headerShown: false,
+              contentStyle: styles.container,
+            }}
+          >
+            <Stack.Screen name="index" />
+            <Stack.Screen name="paywall" />
+            <Stack.Screen name="payment-checkout" />
+            <Stack.Screen name="(tabs)" />
+            <Stack.Screen name="goal-selection" />
+            <Stack.Screen name="session-type" />
+            <Stack.Screen name="calendar" />
+            <Stack.Screen name="review" />
+            <Stack.Screen name="confirmation" />
+          </Stack>
+        </SessionsProvider>
+      </SessionProvider>
+    </PaymentProvider>
   );
 }
 

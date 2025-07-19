@@ -9,10 +9,36 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
+import { usePayment } from '../../utils/paymentContext';
 
 export default function SettingsScreen() {
+  const { subscriptionStatus, isLoading } = usePayment();
+
   const handleSettingPress = (setting: string) => {
     Alert.alert('Coming Soon', `${setting} will be available soon`);
+  };
+
+  const handleSubscriptionPress = () => {
+    if (subscriptionStatus?.isActive) {
+      // Show subscription details
+      Alert.alert(
+        'Subscription Details',
+        `Plan: ${subscriptionStatus.tier}\nStatus: ${subscriptionStatus.status}\nRenews: ${new Date(subscriptionStatus.currentPeriodEnd * 1000).toLocaleDateString()}`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { 
+            text: 'Manage Subscription', 
+            onPress: () => {
+              // Navigate to subscription management
+              Alert.alert('Coming Soon', 'Subscription management will be available soon');
+            }
+          }
+        ]
+      );
+    } else {
+      // Navigate to paywall
+      router.push('/paywall');
+    }
   };
 
   const handleSignOut = () => {
@@ -31,6 +57,26 @@ export default function SettingsScreen() {
         }
       ]
     );
+  };
+
+  const getSubscriptionText = () => {
+    if (isLoading) {
+      return 'Loading...';
+    }
+    if (subscriptionStatus?.isActive) {
+      return `${subscriptionStatus.tier} Plan (Active)`;
+    }
+    return 'No Active Subscription';
+  };
+
+  const getSubscriptionColor = () => {
+    if (isLoading) {
+      return '#C4B8DD';
+    }
+    if (subscriptionStatus?.isActive) {
+      return '#A9C3B1';
+    }
+    return '#E0C68B';
   };
 
   return (
@@ -67,10 +113,12 @@ export default function SettingsScreen() {
           
           <TouchableOpacity 
             style={styles.settingsItem}
-            onPress={() => handleSettingPress('Subscription')}
+            onPress={handleSubscriptionPress}
           >
             <Text style={styles.settingsText}>Subscription</Text>
-            <Text style={styles.arrow}>→</Text>
+            <Text style={[styles.subscriptionStatus, { color: getSubscriptionColor() }]}>
+              {getSubscriptionText()}
+            </Text>
           </TouchableOpacity>
           
           <TouchableOpacity 
@@ -129,6 +177,10 @@ const styles = StyleSheet.create({
   settingsText: {
     fontSize: 16,
     color: '#F9F8F4',
+  },
+  subscriptionStatus: {
+    fontSize: 14,
+    fontWeight: 'bold',
   },
   signOutText: {
     color: '#E0C68B',
