@@ -102,7 +102,6 @@ export const formatTimeInTimezone = (date: Date, timezone?: string): string => {
     minute: '2-digit',
     hour12: true,
     timeZone: timezone || Intl.DateTimeFormat().resolvedOptions().timeZone,
-    timeZoneName: 'short'
   });
 };
 

@@ -20,11 +20,38 @@ export default function CoachScreen() {
     router.push('/goal-selection');
   };
 
+  const handleJoinSession = (session: any) => {
+    // Navigate to chat with session context
+    router.push({
+      pathname: '/(tabs)/chat',
+      params: {
+        sessionId: session.id,
+        goal: session.goal,
+        sessionType: session.sessionType,
+        isActiveSession: 'true',
+      },
+    });
+  };
+
+  const canJoinSession = (session: any) => {
+    const now = new Date();
+    const sessionTime = session.fullDate;
+    const timeDiff = sessionTime.getTime() - now.getTime();
+    const minutesDiff = timeDiff / (1000 * 60);
+    
+    // Can join 15 minutes before or up to 30 minutes after session start
+    return minutesDiff >= -30 && minutesDiff <= 15;
+  };
+
   const formatSessionTime = (session: any) => {
     const now = new Date();
     const sessionDate = session.fullDate;
-    const diffTime = sessionDate.getTime() - now.getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    // Compare dates by day, not by exact time difference
+    const nowDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const sessionDateOnly = new Date(sessionDate.getFullYear(), sessionDate.getMonth(), sessionDate.getDate());
+    const diffTime = sessionDateOnly.getTime() - nowDate.getTime();
+    const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
 
     if (diffDays === 0) {
       return `Today, ${session.time}`;
@@ -65,12 +92,25 @@ export default function CoachScreen() {
             {upcomingSessions.length > 0 ? (
               upcomingSessions.map((session) => (
                 <View key={session.id} style={styles.sessionCard}>
-                  <Text style={styles.sessionTopic}>{session.goal}</Text>
-                  <Text style={styles.sessionTime}>{formatSessionTime(session)}</Text>
-                  <Text style={styles.sessionType}>
-                    {session.sessionType === 'call' ? '📞 Voice Call' : '💬 Text Chat'}
-                    {session.recurring !== 'none' && ` • ${session.recurring.charAt(0).toUpperCase() + session.recurring.slice(1)}`}
-                  </Text>
+                  <View style={styles.sessionInfo}>
+                    <Text style={styles.sessionTopic}>{session.goal}</Text>
+                    <Text style={styles.sessionTime}>{formatSessionTime(session)}</Text>
+                    <Text style={styles.sessionType}>
+                      {session.sessionType === 'call' ? '📞 Voice Call' : '💬 Text Chat'}
+                      {session.recurring !== 'none' && ` • ${session.recurring.charAt(0).toUpperCase() + session.recurring.slice(1)}`}
+                    </Text>
+                  </View>
+                  
+                  {canJoinSession(session) && (
+                    <TouchableOpacity 
+                      style={styles.joinButton}
+                      onPress={() => handleJoinSession(session)}
+                    >
+                      <Text style={styles.joinButtonText}>
+                        {session.sessionType === 'call' ? 'Join Call' : 'Start Chat'}
+                      </Text>
+                    </TouchableOpacity>
+                  )}
                 </View>
               ))
             ) : (
@@ -150,10 +190,12 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     borderLeftWidth: 4,
     borderLeftColor: '#E0C68B',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
-  completedSession: {
-    borderLeftColor: '#6B7280',
-    opacity: 0.7,
+  sessionInfo: {
+    flex: 1,
   },
   sessionTopic: {
     fontWeight: 'bold',
@@ -170,6 +212,23 @@ const styles = StyleSheet.create({
     color: '#C4B8DD',
     fontSize: 12,
     fontStyle: 'italic',
+  },
+  joinButton: {
+    backgroundColor: '#E0C68B',
+    paddingVertical: 8,
+    paddingHorizontal: 15,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E0C68B',
+  },
+  joinButtonText: {
+    color: '#2E2C58',
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  completedSession: {
+    borderLeftColor: '#6B7280',
+    opacity: 0.7,
   },
   emptyState: {
     backgroundColor: 'rgba(196, 184, 221, 0.05)',

@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import {
     Alert,
     SafeAreaView,
+    ScrollView,
     StyleSheet,
     Text,
     TouchableOpacity,
@@ -67,7 +68,7 @@ export default function SessionTypeScreen() {
         <Text style={styles.subtitle}>Choose your preferred communication method</Text>
       </View>
       
-      <View style={styles.content}>
+      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.typeOptions}>
           {sessionTypes.map((type) => (
             <TouchableOpacity
@@ -113,7 +114,7 @@ export default function SessionTypeScreen() {
             Review & Confirm
           </Text>
         </TouchableOpacity>
-      </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -155,6 +156,7 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     paddingHorizontal: 20,
+    paddingBottom: 20,
   },
   typeOptions: {
     marginBottom: 30,

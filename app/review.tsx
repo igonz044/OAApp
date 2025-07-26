@@ -1,6 +1,7 @@
 import { router } from 'expo-router';
 import React from 'react';
 import {
+    Alert,
     SafeAreaView,
     ScrollView,
     StyleSheet,
@@ -15,24 +16,28 @@ export default function ReviewScreen() {
   const { sessionData, clearSessionData } = useSession();
   const { addSession } = useSessions();
 
-  const handleApprove = () => {
+  const handleApprove = async () => {
     if (sessionData) {
-      // Add the session to the sessions list
-      addSession({
-        goal: sessionData.goal,
-        date: sessionData.date,
-        time: sessionData.time,
-        recurring: sessionData.recurring,
-        sessionType: sessionData.sessionType,
-        fullDate: sessionData.fullDate!,
-        displayTime: sessionData.displayTime!,
-      });
-      
-      console.log('Session approved and added:', sessionData);
+      try {
+        // Add the session to the sessions list
+        await addSession({
+          goal: sessionData.goal,
+          date: sessionData.date,
+          time: sessionData.time,
+          recurring: sessionData.recurring,
+          sessionType: sessionData.sessionType,
+          fullDate: sessionData.fullDate!,
+          displayTime: sessionData.displayTime!,
+        });
+        
+        console.log('Session approved and added:', sessionData);
+        clearSessionData(); // Clear the session data after approval
+        router.push('/confirmation');
+      } catch (error) {
+        console.error('Error adding session:', error);
+        Alert.alert('Error', 'Failed to schedule session. Please try again.');
+      }
     }
-    
-    clearSessionData(); // Clear the session data after approval
-    router.push('/confirmation');
   };
 
   const handleBack = () => {

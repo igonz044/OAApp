@@ -8,6 +8,9 @@ import {
     Text,
     TouchableOpacity,
     View,
+    Modal,
+    Platform,
+    Dimensions,
 } from 'react-native';
 import { formatTimeInTimezone } from '../utils/timezone';
 import { useSession } from '../utils/sessionContext';
@@ -19,21 +22,26 @@ type DateOption = {
   fullDate: Date;
 };
 
-type TimeSlot = {
-  time: string;
-  displayTime: string;
-  fullDate: Date;
-};
+// Removed TimeSlot type - no longer using predefined time slots
 
 type RecurringOption = 'none' | 'daily' | 'weekly' | 'monthly';
 
 export default function CalendarScreen() {
+  const { width: screenWidth } = Dimensions.get('window');
+  const isSmallScreen = screenWidth < 400;
+  
   const [selectedDate, setSelectedDate] = useState<string>('');
   const [selectedTime, setSelectedTime] = useState<string>('');
   const [selectedRecurring, setSelectedRecurring] = useState<RecurringOption>('none');
   const [currentWeek, setCurrentWeek] = useState(0); // 0 = current week, 1 = next week, etc.
   const [dateOptions, setDateOptions] = useState<DateOption[]>([]);
-  const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([]);
+  // Removed showTimePicker state - no longer using modal
+  const [customHour, setCustomHour] = useState(9);
+  const [customMinute, setCustomMinute] = useState(0);
+  const [customPeriod, setCustomPeriod] = useState<'AM' | 'PM'>('AM');
+  const [showHourDropdown, setShowHourDropdown] = useState(false);
+  const [showMinuteDropdown, setShowMinuteDropdown] = useState(false);
+  const [showPeriodDropdown, setShowPeriodDropdown] = useState(false);
   const { sessionData, setSessionData } = useSession();
 
   // Generate dates for the current week
@@ -69,41 +77,19 @@ export default function CalendarScreen() {
     setDateOptions(options);
   };
 
-  const generateTimeSlots = (selectedDateObj: Date) => {
-    const slots: TimeSlot[] = [];
-    const baseHours = [9, 10, 11, 14, 15, 16]; // 9 AM, 10 AM, 11 AM, 2 PM, 3 PM, 4 PM
-    
-    baseHours.forEach(hour => {
-      const timeDate = new Date(selectedDateObj);
-      timeDate.setHours(hour, 0, 0, 0);
-      
-      const displayTime = formatTimeInTimezone(timeDate);
-      const timeId = `${hour}:00`;
-      
-      slots.push({
-        time: timeId,
-        displayTime,
-        fullDate: timeDate,
-      });
-    });
-    
-    setTimeSlots(slots);
-  };
+  // Removed generateTimeSlots - users will use dropdown menus instead
 
   const handleDateSelect = (dateId: string) => {
     setSelectedDate(dateId);
     setSelectedTime(''); // Reset time when date changes
     setSelectedRecurring('none'); // Reset recurring when date changes
-    
-    const selectedDateObj = dateOptions.find(option => option.id === dateId)?.fullDate;
-    if (selectedDateObj) {
-      generateTimeSlots(selectedDateObj);
-    }
   };
 
-  const handleTimeSelect = (timeId: string) => {
-    setSelectedTime(timeId);
-  };
+  // Removed handleTimeSelect - users will use dropdown menus instead
+
+  // Removed handleCustomTimeSelect - no longer using modal
+
+  // Removed handleCustomTimeConfirm - no longer using modal confirmation
 
   const handleRecurringSelect = (option: RecurringOption) => {
     setSelectedRecurring(option);
@@ -111,12 +97,19 @@ export default function CalendarScreen() {
 
   const handleNext = () => {
     if (!selectedDate || !selectedTime) {
-      Alert.alert('Please select date and time', 'You need to choose both a date and time slot to continue.');
+      Alert.alert('Please select date and time', 'You need to choose both a date and time to continue.');
       return;
     }
     
     const selectedDateObj = dateOptions.find(option => option.id === selectedDate)?.fullDate;
-    const selectedTimeObj = timeSlots.find(slot => slot.time === selectedTime)?.fullDate;
+    let selectedTimeObj: Date | undefined;
+    
+    if (selectedTime.startsWith('custom_')) {
+      // Handle custom time
+      const [_, hour24, minute] = selectedTime.split('_');
+      selectedTimeObj = new Date(selectedDateObj!);
+      selectedTimeObj.setHours(parseInt(hour24), parseInt(minute), 0, 0);
+    }
     
     if (selectedDateObj && selectedTimeObj) {
       const displayTime = formatTimeInTimezone(selectedTimeObj);
@@ -132,7 +125,7 @@ export default function CalendarScreen() {
         date: dateLabel,
         time: displayTime,
         recurring: selectedRecurring,
-        fullDate: selectedDateObj,
+        fullDate: selectedTimeObj, // Use the time-specific date
         displayTime: displayTime,
       });
       
@@ -188,10 +181,35 @@ export default function CalendarScreen() {
     }
   };
 
-  const getWeekLabel = () => {
-    if (currentWeek === 0) return 'This Week';
-    if (currentWeek === 1) return 'Next Week';
-    return `Week ${currentWeek + 1}`;
+  // Removed getWeekLabel function - no longer needed
+
+  const getSelectedTimeDisplay = () => {
+    if (!selectedTime) return 'Select a time';
+    
+    if (selectedTime.startsWith('custom_')) {
+      const [_, hour, minute] = selectedTime.split('_');
+      const timeDate = new Date();
+      timeDate.setHours(parseInt(hour), parseInt(minute), 0, 0);
+      return formatTimeInTimezone(timeDate);
+    }
+    
+    return 'Select a time';
+  };
+
+  const getCurrentTimeDisplay = () => {
+    // Convert 24-hour to 12-hour for display
+    let displayHour = customHour;
+    let displayPeriod = customPeriod;
+    
+    if (customHour === 0) {
+      displayHour = 12;
+      displayPeriod = 'AM';
+    } else if (customHour > 12) {
+      displayHour = customHour - 12;
+      displayPeriod = 'PM';
+    }
+    
+    return `${displayHour}:${customMinute.toString().padStart(2, '0')} ${displayPeriod}`;
   };
 
   const recurringOptions = [
@@ -213,25 +231,32 @@ export default function CalendarScreen() {
         {/* Week Navigation */}
         <View style={styles.weekNavigation}>
           <TouchableOpacity 
-            style={[styles.weekNavBtn, currentWeek === 0 && styles.weekNavBtnDisabled]}
+            style={[
+              styles.weekNavBtn, 
+              currentWeek === 0 && styles.weekNavBtnDisabled,
+              isSmallScreen && { minWidth: 35, paddingHorizontal: 8 }
+            ]}
             onPress={handlePreviousWeek}
             disabled={currentWeek === 0}
           >
-            <Text style={[styles.weekNavBtnText, currentWeek === 0 && styles.weekNavBtnTextDisabled]}>
-              ← Previous
+            <Text style={[
+              styles.weekNavBtnText, 
+              currentWeek === 0 && styles.weekNavBtnTextDisabled,
+              isSmallScreen && { fontSize: 16 }
+            ]}>
+              ←
             </Text>
           </TouchableOpacity>
           
-          <View style={styles.weekInfo}>
-            <Text style={styles.weekLabel}>{getWeekLabel()}</Text>
-            <Text style={styles.weekRange}>{formatWeekRange()}</Text>
+          <View style={[styles.weekInfo, isSmallScreen && { marginHorizontal: 5 }]}>
+            <Text style={[styles.weekRange, isSmallScreen && { fontSize: 14 }]}>{formatWeekRange()}</Text>
           </View>
           
           <TouchableOpacity 
-            style={styles.weekNavBtn}
+            style={[styles.weekNavBtn, isSmallScreen && { minWidth: 35, paddingHorizontal: 8 }]}
             onPress={handleNextWeek}
           >
-            <Text style={styles.weekNavBtnText}>Next →</Text>
+            <Text style={[styles.weekNavBtnText, isSmallScreen && { fontSize: 16 }]}>→</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -250,16 +275,16 @@ export default function CalendarScreen() {
                 onPress={() => handleDateSelect(dateOption.id)}
               >
                 <Text style={[
-                  styles.dateNumber,
-                  selectedDate === dateOption.id && styles.dateNumberSelected,
-                ]}>
-                  {dateOption.date}
-                </Text>
-                <Text style={[
                   styles.dayName,
                   selectedDate === dateOption.id && styles.dayNameSelected,
                 ]}>
                   {dateOption.day}
+                </Text>
+                <Text style={[
+                  styles.dateNumber,
+                  selectedDate === dateOption.id && styles.dateNumberSelected,
+                ]}>
+                  {dateOption.date}
                 </Text>
               </TouchableOpacity>
             ))}
@@ -269,24 +294,174 @@ export default function CalendarScreen() {
         {selectedDate && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Select Time</Text>
-            <View style={styles.timeSlots}>
-              {timeSlots.map((timeSlot) => (
-                <TouchableOpacity
-                  key={timeSlot.time}
-                  style={[
-                    styles.timeSlot,
-                    selectedTime === timeSlot.time && styles.timeSlotSelected,
-                  ]}
-                  onPress={() => handleTimeSelect(timeSlot.time)}
-                >
-                  <Text style={[
-                    styles.timeSlotText,
-                    selectedTime === timeSlot.time && styles.timeSlotTextSelected,
-                  ]}>
-                    {timeSlot.displayTime}
-                  </Text>
-                </TouchableOpacity>
-              ))}
+            
+            {/* Direct Time Picker */}
+            <View style={styles.directTimePicker}>
+              <Text style={styles.currentTimeDisplay}>{getCurrentTimeDisplay()}</Text>
+              
+              <View style={styles.dropdownRow}>
+                {/* Hour Dropdown */}
+                <View style={styles.dropdownColumn}>
+                  <TouchableOpacity
+                    style={styles.dropdownTrigger}
+                    onPress={() => {
+                      setShowHourDropdown(!showHourDropdown);
+                      setShowMinuteDropdown(false);
+                      setShowPeriodDropdown(false);
+                    }}
+                  >
+                    <Text style={styles.dropdownTriggerText}>
+                      {customHour === 0 ? '12' : customHour > 12 ? (customHour - 12).toString() : customHour.toString()}
+                    </Text>
+                    <Text style={styles.dropdownArrow}>▼</Text>
+                  </TouchableOpacity>
+                  
+                  {showHourDropdown && (
+                    <View style={styles.dropdownMenu}>
+                      <ScrollView style={styles.dropdownScroll} showsVerticalScrollIndicator={false}>
+                        {Array.from({ length: 12 }, (_, i) => i + 1).map((hour) => (
+                          <TouchableOpacity
+                            key={hour}
+                            style={[
+                              styles.dropdownOption,
+                              customHour === hour && styles.dropdownOptionSelected,
+                            ]}
+                            onPress={() => {
+                              setCustomHour(hour);
+                              setShowHourDropdown(false);
+                              // Auto-set selected time when hour is chosen
+                              // Convert 12-hour to 24-hour for the time ID
+                              let hour24 = hour;
+                              if (customPeriod === 'PM' && hour !== 12) {
+                                hour24 = hour + 12;
+                              } else if (customPeriod === 'AM' && hour === 12) {
+                                hour24 = 0;
+                              }
+                              const timeId = `custom_${hour24}_${customMinute}`;
+                              setSelectedTime(timeId);
+                            }}
+                          >
+                            <Text style={[
+                              styles.dropdownOptionText,
+                              customHour === hour && styles.dropdownOptionTextSelected,
+                            ]}>
+                              {hour}
+                            </Text>
+                          </TouchableOpacity>
+                        ))}
+                      </ScrollView>
+                    </View>
+                  )}
+                </View>
+
+                <Text style={styles.timeSeparator}>:</Text>
+
+                {/* Minute Dropdown */}
+                <View style={styles.dropdownColumn}>
+                  <TouchableOpacity
+                    style={styles.dropdownTrigger}
+                    onPress={() => {
+                      setShowMinuteDropdown(!showMinuteDropdown);
+                      setShowHourDropdown(false);
+                      setShowPeriodDropdown(false);
+                    }}
+                  >
+                    <Text style={styles.dropdownTriggerText}>
+                      {customMinute.toString().padStart(2, '0')}
+                    </Text>
+                    <Text style={styles.dropdownArrow}>▼</Text>
+                  </TouchableOpacity>
+                  
+                  {showMinuteDropdown && (
+                    <View style={styles.dropdownMenu}>
+                      <ScrollView style={styles.dropdownScroll} showsVerticalScrollIndicator={false}>
+                        {[0, 15, 30, 45].map((minute) => (
+                          <TouchableOpacity
+                            key={minute}
+                            style={[
+                              styles.dropdownOption,
+                              customMinute === minute && styles.dropdownOptionSelected,
+                            ]}
+                            onPress={() => {
+                              setCustomMinute(minute);
+                              setShowMinuteDropdown(false);
+                              // Auto-set selected time when minute is chosen
+                              // Convert 12-hour to 24-hour for the time ID
+                              let hour24 = customHour;
+                              if (customPeriod === 'PM' && customHour !== 12) {
+                                hour24 = customHour + 12;
+                              } else if (customPeriod === 'AM' && customHour === 12) {
+                                hour24 = 0;
+                              }
+                              const timeId = `custom_${hour24}_${minute}`;
+                              setSelectedTime(timeId);
+                            }}
+                          >
+                            <Text style={[
+                              styles.dropdownOptionText,
+                              customMinute === minute && styles.dropdownOptionTextSelected,
+                            ]}>
+                              {minute.toString().padStart(2, '0')}
+                            </Text>
+                          </TouchableOpacity>
+                        ))}
+                      </ScrollView>
+                    </View>
+                  )}
+                </View>
+
+                {/* Period Dropdown */}
+                <View style={styles.dropdownColumn}>
+                  <TouchableOpacity
+                    style={styles.dropdownTrigger}
+                    onPress={() => {
+                      setShowPeriodDropdown(!showPeriodDropdown);
+                      setShowHourDropdown(false);
+                      setShowMinuteDropdown(false);
+                    }}
+                  >
+                    <Text style={styles.dropdownTriggerText}>
+                      {customPeriod}
+                    </Text>
+                    <Text style={styles.dropdownArrow}>▼</Text>
+                  </TouchableOpacity>
+                  
+                  {showPeriodDropdown && (
+                    <View style={styles.dropdownMenu}>
+                      {['AM', 'PM'].map((period) => (
+                        <TouchableOpacity
+                          key={period}
+                          style={[
+                            styles.dropdownOption,
+                            customPeriod === period && styles.dropdownOptionSelected,
+                          ]}
+                                                      onPress={() => {
+                              setCustomPeriod(period as 'AM' | 'PM');
+                              setShowPeriodDropdown(false);
+                              // Auto-set selected time when period is chosen
+                              // Convert 12-hour to 24-hour for the time ID
+                              let hour24 = customHour;
+                              if (period === 'PM' && customHour !== 12) {
+                                hour24 = customHour + 12;
+                              } else if (period === 'AM' && customHour === 12) {
+                                hour24 = 0;
+                              }
+                              const timeId = `custom_${hour24}_${customMinute}`;
+                              setSelectedTime(timeId);
+                            }}
+                        >
+                          <Text style={[
+                            styles.dropdownOptionText,
+                            customPeriod === period && styles.dropdownOptionTextSelected,
+                          ]}>
+                            {period}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  )}
+                </View>
+              </View>
             </View>
           </View>
         )}
@@ -306,8 +481,8 @@ export default function CalendarScreen() {
                 >
                   <Text style={styles.recurringEmoji}>{option.emoji}</Text>
                   <Text style={[
-                    styles.recurringLabel,
-                    selectedRecurring === option.id && styles.recurringLabelSelected,
+                    styles.recurringText,
+                    selectedRecurring === option.id && styles.recurringTextSelected,
                   ]}>
                     {option.label}
                   </Text>
@@ -333,6 +508,8 @@ export default function CalendarScreen() {
           </Text>
         </TouchableOpacity>
       </ScrollView>
+
+      {/* Removed modal dropdown - now using direct time picker */}
     </SafeAreaView>
   );
 }
@@ -372,16 +549,16 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     width: '100%',
     marginBottom: 20,
-    paddingHorizontal: 10,
+    paddingHorizontal: 5,
   },
   weekNavBtn: {
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
     backgroundColor: 'rgba(224, 198, 139, 0.3)',
-    borderWidth: 2,
+    borderWidth: 1,
     borderColor: '#E0C68B',
-    minWidth: 100,
+    minWidth: 40,
     alignItems: 'center',
   },
   weekNavBtnDisabled: {
@@ -390,7 +567,7 @@ const styles = StyleSheet.create({
   },
   weekNavBtnText: {
     color: '#E0C68B',
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: 'bold',
   },
   weekNavBtnTextDisabled: {
@@ -399,18 +576,14 @@ const styles = StyleSheet.create({
   weekInfo: {
     alignItems: 'center',
     flex: 1,
-    marginHorizontal: 20,
-    paddingVertical: 10,
+    marginHorizontal: 10,
+    paddingVertical: 5,
   },
-  weekLabel: {
-    color: '#E0C68B',
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 6,
-  },
+  // Removed weekLabel styles - no longer needed
   weekRange: {
-    color: '#C4B8DD',
+    color: '#E0C68B',
     fontSize: 16,
+    fontWeight: 'bold',
     textAlign: 'center',
   },
   content: {
@@ -462,34 +635,7 @@ const styles = StyleSheet.create({
   dayNameSelected: {
     color: '#2E2C58',
   },
-  timeSlots: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    gap: 10,
-  },
-  timeSlot: {
-    width: '30%',
-    padding: 12,
-    backgroundColor: 'rgba(196, 184, 221, 0.1)',
-    borderWidth: 1,
-    borderColor: '#C4B8DD',
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  timeSlotSelected: {
-    backgroundColor: '#E0C68B',
-    borderColor: '#E0C68B',
-  },
-  timeSlotText: {
-    color: '#F9F8F4',
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  timeSlotTextSelected: {
-    color: '#2E2C58',
-    fontWeight: 'bold',
-  },
+  // Removed timeSlots styles - no longer needed
   btnPrimary: {
     width: '100%',
     padding: 15,
@@ -543,13 +689,359 @@ const styles = StyleSheet.create({
     fontSize: 24,
     marginRight: 10,
   },
-  recurringLabel: {
+  recurringText: {
     fontSize: 14,
     fontWeight: '500',
     color: '#F9F8F4',
   },
-  recurringLabelSelected: {
+  recurringTextSelected: {
     color: '#2E2C58',
     fontWeight: 'bold',
+  },
+  // Removed customTimeButton styles - replaced with timeSelectionButton
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  modalContent: {
+    width: '80%',
+    backgroundColor: '#2E2C58',
+    borderRadius: 15,
+    padding: 20,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  modalTitle: {
+    color: '#E0C68B',
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 20,
+  },
+  timePickerContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    width: '100%',
+    marginBottom: 20,
+  },
+  pickerColumn: {
+    alignItems: 'center',
+  },
+  pickerLabel: {
+    color: '#C4B8DD',
+    fontSize: 14,
+    marginBottom: 10,
+  },
+  pickerScroll: {
+    width: '100%',
+  },
+  pickerOption: {
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 10,
+    backgroundColor: 'rgba(196, 184, 221, 0.1)',
+    borderWidth: 1,
+    borderColor: '#C4B8DD',
+    marginVertical: 5,
+  },
+  pickerOptionSelected: {
+    backgroundColor: '#E0C68B',
+    borderColor: '#E0C68B',
+  },
+  pickerOptionText: {
+    color: '#F9F8F4',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  pickerOptionTextSelected: {
+    color: '#2E2C58',
+  },
+  pickerSeparator: {
+    color: '#C4B8DD',
+    fontSize: 24,
+    marginHorizontal: 10,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    width: '100%',
+  },
+  modalButton: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 12,
+    backgroundColor: 'rgba(196, 184, 221, 0.1)',
+    borderWidth: 1,
+    borderColor: '#C4B8DD',
+    alignItems: 'center',
+    marginHorizontal: 10,
+  },
+  modalButtonText: {
+    color: '#E0C68B',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  modalButtonConfirm: {
+    backgroundColor: '#E0C68B',
+    borderColor: '#E0C68B',
+  },
+  modalButtonTextConfirm: {
+    color: '#2E2C58',
+  },
+  // Dropdown styles
+  dropdownOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 1000,
+  },
+  dropdownBackdrop: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+  },
+  dropdownContainer: {
+    position: 'absolute',
+    top: '50%',
+    left: 20,
+    right: 20,
+    backgroundColor: '#2E2C58',
+    borderRadius: 12,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 8,
+    maxHeight: '80%',
+  },
+  dropdownHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+    paddingBottom: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(196, 184, 221, 0.2)',
+  },
+  dropdownTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#E0C68B',
+  },
+  dropdownCloseButton: {
+    padding: 5,
+  },
+  dropdownCloseText: {
+    fontSize: 18,
+    color: '#C4B8DD',
+    fontWeight: 'bold',
+  },
+  timeGrid: {
+    flex: 1,
+  },
+  quickTimesSection: {
+    marginBottom: 20,
+  },
+  sectionLabel: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#C4B8DD',
+    marginBottom: 10,
+  },
+  quickTimesGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+  },
+  quickTimeOption: {
+    width: '30%',
+    paddingVertical: 10,
+    paddingHorizontal: 8,
+    borderRadius: 8,
+    backgroundColor: 'rgba(196, 184, 221, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(196, 184, 221, 0.3)',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  quickTimeOptionSelected: {
+    backgroundColor: '#E0C68B',
+    borderColor: '#E0C68B',
+  },
+  quickTimeText: {
+    fontSize: 14,
+    color: '#F9F8F4',
+    fontWeight: '500',
+  },
+  quickTimeTextSelected: {
+    color: '#2E2C58',
+    fontWeight: 'bold',
+  },
+  customTimeSection: {
+    marginBottom: 20,
+  },
+  customTimePicker: {
+    backgroundColor: 'rgba(196, 184, 221, 0.05)',
+    borderRadius: 8,
+    padding: 15,
+  },
+  timePickerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+  },
+  dropdownFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingTop: 15,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(196, 184, 221, 0.2)',
+  },
+  dropdownButton: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 8,
+    backgroundColor: 'rgba(196, 184, 221, 0.1)',
+    borderWidth: 1,
+    borderColor: '#C4B8DD',
+    alignItems: 'center',
+    marginHorizontal: 5,
+  },
+  dropdownButtonConfirm: {
+    backgroundColor: '#E0C68B',
+    borderColor: '#E0C68B',
+  },
+  dropdownButtonText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#C4B8DD',
+  },
+  dropdownButtonTextConfirm: {
+    color: '#2E2C58',
+  },
+  // New dropdown styles
+  currentTimeDisplay: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#E0C68B',
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  dropdownRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  dropdownColumn: {
+    flex: 1,
+    marginHorizontal: 5,
+    position: 'relative',
+  },
+  dropdownTrigger: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 15,
+    backgroundColor: 'rgba(196, 184, 221, 0.1)',
+    borderWidth: 1,
+    borderColor: '#C4B8DD',
+    borderRadius: 8,
+  },
+  dropdownTriggerText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#F9F8F4',
+  },
+  dropdownArrow: {
+    fontSize: 12,
+    color: '#C4B8DD',
+  },
+  dropdownMenu: {
+    position: 'absolute',
+    top: '100%',
+    left: 0,
+    right: 0,
+    backgroundColor: '#2E2C58',
+    borderWidth: 1,
+    borderColor: '#C4B8DD',
+    borderRadius: 8,
+    marginTop: 2,
+    zIndex: 1001,
+    maxHeight: 150,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  dropdownScroll: {
+    maxHeight: 150,
+  },
+  dropdownOption: {
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(196, 184, 221, 0.1)',
+  },
+  dropdownOptionSelected: {
+    backgroundColor: '#E0C68B',
+  },
+  dropdownOptionText: {
+    fontSize: 14,
+    color: '#F9F8F4',
+    textAlign: 'center',
+  },
+  dropdownOptionTextSelected: {
+    color: '#2E2C58',
+    fontWeight: 'bold',
+  },
+  timeSeparator: {
+    fontSize: 20,
+    color: '#C4B8DD',
+    fontWeight: 'bold',
+    marginHorizontal: 10,
+  },
+  // New time selection button styles
+  timeSelectionButton: {
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    backgroundColor: 'rgba(196, 184, 221, 0.1)',
+    borderWidth: 2,
+    borderColor: '#C4B8DD',
+    borderRadius: 12,
+    alignItems: 'center',
+    marginTop: 10,
+  },
+  timeSelectionButtonSelected: {
+    backgroundColor: '#E0C68B',
+    borderColor: '#E0C68B',
+  },
+  timeSelectionButtonText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#C4B8DD',
+  },
+  timeSelectionButtonTextSelected: {
+    color: '#2E2C58',
+  },
+  // Direct time picker styles
+  directTimePicker: {
+    backgroundColor: 'rgba(196, 184, 221, 0.05)',
+    borderRadius: 12,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(196, 184, 221, 0.2)',
   },
 }); 

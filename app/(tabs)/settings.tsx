@@ -10,6 +10,7 @@ import {
     View,
 } from 'react-native';
 import { usePayment } from '../../utils/paymentContext';
+import { notificationService } from '../../utils/notificationService';
 
 export default function SettingsScreen() {
   const { subscriptionStatus, isLoading } = usePayment();
@@ -59,6 +60,24 @@ export default function SettingsScreen() {
     );
   };
 
+  const handleTestNotification = async () => {
+    try {
+      await notificationService.sendTestNotification();
+      Alert.alert('Test Notification', 'A test notification will appear in 2 seconds!');
+    } catch (error) {
+      Alert.alert('Error', 'Failed to send test notification');
+    }
+  };
+
+  const handleDebugNotifications = async () => {
+    try {
+      await notificationService.debugScheduledNotifications();
+      Alert.alert('Debug Info', 'Check the console for scheduled notifications info!');
+    } catch (error) {
+      Alert.alert('Error', 'Failed to get debug info');
+    }
+  };
+
   const getSubscriptionText = () => {
     if (isLoading) {
       return 'Loading...';
@@ -97,9 +116,17 @@ export default function SettingsScreen() {
           
           <TouchableOpacity 
             style={styles.settingsItem}
-            onPress={() => handleSettingPress('Notifications')}
+            onPress={handleTestNotification}
           >
-            <Text style={styles.settingsText}>Notifications</Text>
+            <Text style={styles.settingsText}>Test Notifications</Text>
+            <Text style={styles.arrow}>→</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={styles.settingsItem}
+            onPress={handleDebugNotifications}
+          >
+            <Text style={styles.settingsText}>Debug Notifications</Text>
             <Text style={styles.arrow}>→</Text>
           </TouchableOpacity>
           

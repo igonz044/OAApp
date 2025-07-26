@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     KeyboardAvoidingView,
     Platform,
@@ -10,6 +10,7 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
+import { useLocalSearchParams } from 'expo-router';
 import Svg, { Path } from 'react-native-svg';
 
 interface Message {
@@ -20,28 +21,72 @@ interface Message {
 }
 
 export default function ChatScreen() {
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: '1',
-      text: "Hello! I'm here to help you with your wellness journey. What would you like to work on today?",
-      isUser: false,
-      timestamp: new Date(),
-    },
-    {
-      id: '2',
-      text: "I've been struggling with procrastination lately",
-      isUser: true,
-      timestamp: new Date(),
-    },
-    {
-      id: '3',
-      text: "I understand how challenging procrastination can be. Let's work together to identify some strategies that might help you. What specific tasks have you been putting off?",
-      isUser: false,
-      timestamp: new Date(),
-    },
-  ]);
+  const params = useLocalSearchParams<{
+    sessionId?: string;
+    goal?: string;
+    sessionType?: string;
+    isActiveSession?: string;
+  }>();
+
+  const isActiveSession = params.isActiveSession === 'true';
+  const sessionGoal = params.goal || 'Wellness';
+  const sessionType = params.sessionType || 'chat';
+
+  const [messages, setMessages] = useState<Message[]>([]);
   const [inputText, setInputText] = useState('');
   const [showHistory, setShowHistory] = useState(false);
+  const [sessionStarted, setSessionStarted] = useState(false);
+
+  // Initialize session-specific messages
+  useEffect(() => {
+    if (isActiveSession && !sessionStarted) {
+      const sessionMessages: Message[] = [
+        {
+          id: '1',
+          text: `Welcome to your ${sessionGoal} coaching session! I'm here to support you on your wellness journey.`,
+          isUser: false,
+          timestamp: new Date(),
+        },
+        {
+          id: '2',
+          text: `This is a ${sessionType === 'call' ? 'voice call' : 'text chat'} session. Let's begin by discussing your goals and any challenges you're facing.`,
+          isUser: false,
+          timestamp: new Date(),
+        },
+        {
+          id: '3',
+          text: `What would you like to focus on today?`,
+          isUser: false,
+          timestamp: new Date(),
+        },
+      ];
+      setMessages(sessionMessages);
+      setSessionStarted(true);
+    } else if (!isActiveSession) {
+      // Regular chat mode
+      const regularMessages: Message[] = [
+        {
+          id: '1',
+          text: "Hello! I'm here to help you with your wellness journey. What would you like to work on today?",
+          isUser: false,
+          timestamp: new Date(),
+        },
+        {
+          id: '2',
+          text: "I've been struggling with procrastination lately",
+          isUser: true,
+          timestamp: new Date(),
+        },
+        {
+          id: '3',
+          text: "I understand how challenging procrastination can be. Let's work together to identify some strategies that might help you. What specific tasks have you been putting off?",
+          isUser: false,
+          timestamp: new Date(),
+        },
+      ];
+      setMessages(regularMessages);
+    }
+  }, [isActiveSession, sessionGoal, sessionType, sessionStarted]);
 
   const sendMessage = () => {
     if (inputText.trim()) {
@@ -58,7 +103,9 @@ export default function ChatScreen() {
       setTimeout(() => {
         const aiResponse: Message = {
           id: (Date.now() + 1).toString(),
-          text: "That's a great question! Let me help you work through that.",
+          text: isActiveSession 
+            ? "Thank you for sharing that. Let's explore this further together. What specific strategies have you tried before?"
+            : "That's a great question! Let me help you work through that.",
           isUser: false,
           timestamp: new Date(),
         };
@@ -74,6 +121,26 @@ export default function ChatScreen() {
     </Svg>
   );
 
+  const getChatTitle = () => {
+    if (isActiveSession) {
+      return `${sessionGoal} Session`;
+    }
+    return 'AI Wellness Coach';
+  };
+
+  const getSessionBadge = () => {
+    if (isActiveSession) {
+      return (
+        <View style={styles.sessionBadge}>
+          <Text style={styles.sessionBadgeText}>
+            {sessionType === 'call' ? '📞 Voice Call' : '💬 Text Chat'}
+          </Text>
+        </View>
+      );
+    }
+    return null;
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView 
@@ -81,7 +148,10 @@ export default function ChatScreen() {
         style={styles.keyboardView}
       >
         <View style={styles.chatHeader}>
-          <Text style={styles.chatTitle}>AI Wellness Coach</Text>
+          <View style={styles.headerInfo}>
+            <Text style={styles.chatTitle}>{getChatTitle()}</Text>
+            {getSessionBadge()}
+          </View>
           <TouchableOpacity 
             style={styles.chatToggle}
             onPress={() => setShowHistory(!showHistory)}
@@ -150,9 +220,25 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(196, 184, 221, 0.2)',
   },
+  headerInfo: {
+    flexDirection: 'column',
+    alignItems: 'flex-start',
+  },
   chatTitle: {
     fontSize: 20,
     color: '#E0C68B',
+    fontWeight: 'bold',
+  },
+  sessionBadge: {
+    backgroundColor: '#E0C68B',
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: 10,
+    marginTop: 5,
+  },
+  sessionBadgeText: {
+    color: '#2E2C58',
+    fontSize: 12,
     fontWeight: 'bold',
   },
   chatToggle: {

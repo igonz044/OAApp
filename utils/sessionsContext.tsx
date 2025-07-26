@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { notificationService } from './notificationService';
 
 export interface CoachingSession {
   id: string;
@@ -70,7 +71,7 @@ export const SessionsProvider: React.FC<SessionsProviderProps> = ({ children }) 
     }
   };
 
-  const addSession = (sessionData: Omit<CoachingSession, 'id' | 'status' | 'createdAt'>) => {
+  const addSession = async (sessionData: Omit<CoachingSession, 'id' | 'status' | 'createdAt'>) => {
     const newSession: CoachingSession = {
       ...sessionData,
       id: Date.now().toString(),
@@ -81,6 +82,14 @@ export const SessionsProvider: React.FC<SessionsProviderProps> = ({ children }) 
     const updatedSessions = [...sessions, newSession];
     setSessions(updatedSessions);
     saveSessions(updatedSessions);
+
+    // Schedule notifications for the new session
+    try {
+      await notificationService.scheduleSessionNotifications(newSession);
+      console.log('Notifications scheduled for new session');
+    } catch (error) {
+      console.error('Error scheduling notifications for session:', error);
+    }
   };
 
   const updateSession = (id: string, updates: Partial<CoachingSession>) => {
@@ -91,10 +100,18 @@ export const SessionsProvider: React.FC<SessionsProviderProps> = ({ children }) 
     saveSessions(updatedSessions);
   };
 
-  const deleteSession = (id: string) => {
+  const deleteSession = async (id: string) => {
     const updatedSessions = sessions.filter(session => session.id !== id);
     setSessions(updatedSessions);
     saveSessions(updatedSessions);
+
+    // Cancel notifications for the deleted session
+    try {
+      await notificationService.cancelSessionNotifications(id);
+      console.log('Notifications cancelled for deleted session');
+    } catch (error) {
+      console.error('Error cancelling notifications for session:', error);
+    }
   };
 
   const getUpcomingSessions = () => {

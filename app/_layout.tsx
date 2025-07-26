@@ -8,6 +8,8 @@ import { initializeTimezone } from '../utils/timezone';
 import { SessionProvider } from '../utils/sessionContext';
 import { SessionsProvider } from '../utils/sessionsContext';
 import { PaymentProvider } from '../utils/paymentContext';
+import { notificationService } from '../utils/notificationService';
+import * as Notifications from 'expo-notifications';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -22,6 +24,17 @@ export default function RootLayout() {
       SplashScreen.hideAsync();
       // Initialize timezone when app loads
       initializeTimezone().catch(console.error);
+      // Initialize notification service
+      notificationService.initialize().catch(console.error);
+      
+      // Set up notification response listener
+      const subscription = Notifications.addNotificationResponseReceivedListener(
+        (response) => {
+          notificationService.handleNotificationResponse(response);
+        }
+      );
+
+      return () => subscription.remove();
     }
   }, [loaded]);
 
