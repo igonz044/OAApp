@@ -1,6 +1,7 @@
 import { router } from 'expo-router';
 import React, { useState, useEffect } from 'react';
 import {
+    Alert,
     SafeAreaView,
     ScrollView,
     StyleSheet,
@@ -11,6 +12,7 @@ import {
 } from 'react-native';
 import { usePayment } from '../utils/paymentContext';
 import { useAuth } from '../utils/authContext';
+import { freeTrialService } from '../utils/freeTrialService';
 
 export default function PaywallScreen() {
   const [selectedTier, setSelectedTier] = useState<string | null>(null);
@@ -55,9 +57,18 @@ export default function PaywallScreen() {
     });
   };
 
-  const handleSkip = () => {
+  const handleSkip = async () => {
+    try {
+      // Start free trial
+      await freeTrialService.startFreeTrial();
+      console.log('Free trial started successfully');
+      
     // Navigate to main app with limited access
     router.push('/(tabs)');
+    } catch (error) {
+      console.error('Error starting free trial:', error);
+      Alert.alert('Error', 'Failed to start free trial. Please try again.');
+    }
   };
 
   const tiers = [
@@ -174,16 +185,16 @@ export default function PaywallScreen() {
                       <Text style={styles.period}>/{tier.period}</Text>
                     </View>
                   </View>
-                  
-                  <View style={styles.features}>
+              
+              <View style={styles.features}>
                     {tier.features.map((feature, index) => (
                       <View key={index} style={styles.featureItem}>
-                        <Text style={styles.checkmark}>✓</Text>
+                  <Text style={styles.checkmark}>✓</Text>
                         <Text style={styles.featureText}>{feature}</Text>
-                      </View>
+                </View>
                     ))}
-                  </View>
-                  
+              </View>
+              
                   <TouchableOpacity 
                     style={[
                       styles.btnPrimary,
@@ -195,7 +206,7 @@ export default function PaywallScreen() {
                       {selectedTier === tier.id ? 'Selected' : 'Choose Plan'}
                     </Text>
                   </TouchableOpacity>
-                </TouchableOpacity>
+              </TouchableOpacity>
               ))}
             </View>
             

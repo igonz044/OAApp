@@ -40,6 +40,14 @@ export const authService = {
         body: JSON.stringify(userData)
       });
 
+      // Check if response is JSON before parsing
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        const responseText = await response.text();
+        console.error('Non-JSON response in signup:', responseText);
+        throw new Error(`Server returned non-JSON response (${response.status}): ${responseText.substring(0, 200)}`);
+      }
+      
       const data = await response.json();
 
       if (!response.ok) {
@@ -76,6 +84,14 @@ export const authService = {
         body: JSON.stringify({ email, password })
       });
 
+      // Check if response is JSON before parsing
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        const responseText = await response.text();
+        console.error('Non-JSON response in login:', responseText);
+        throw new Error(`Server returned non-JSON response (${response.status}): ${responseText.substring(0, 200)}`);
+      }
+      
       const data = await response.json();
 
       if (!response.ok) {
@@ -110,6 +126,8 @@ export const authService = {
         throw new Error('No refresh token available');
       }
 
+      console.log('Attempting token refresh...');
+      
       const response = await fetch(`${STRIPE_CONFIG.baseUrl}/api/users/refresh-token`, {
         method: 'POST',
         headers: {
@@ -118,15 +136,30 @@ export const authService = {
         body: JSON.stringify({ refreshToken })
       });
 
+      // Check if response is JSON before parsing
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        const responseText = await response.text();
+        console.error('Non-JSON response in refreshToken:', responseText);
+        throw new Error(`Server returned non-JSON response (${response.status}): ${responseText.substring(0, 200)}`);
+      }
+      
       const data = await response.json();
+      console.log('Token refresh response:', {
+        status: response.status,
+        statusText: response.statusText,
+        data: data
+      });
 
       if (!response.ok) {
-        throw new Error('Token refresh failed');
+        throw new Error(data.message || data.error || `HTTP ${response.status}: Token refresh failed`);
       }
 
       // Update stored tokens
       await AsyncStorage.setItem('accessToken', data.data.access_token);
       await AsyncStorage.setItem('refreshToken', data.data.refresh_token);
+      
+      console.log('Token refresh successful');
       
       return {
         success: true,
@@ -137,7 +170,7 @@ export const authService = {
       console.error('Token refresh error:', error);
       return {
         success: false,
-        error: 'Token refresh failed'
+        error: (error as Error).message || 'Token refresh failed'
       };
     }
   },
@@ -157,6 +190,14 @@ export const authService = {
         }
       });
 
+      // Check if response is JSON before parsing
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        const responseText = await response.text();
+        console.error('Non-JSON response in getUserProfile:', responseText);
+        throw new Error(`Server returned non-JSON response (${response.status}): ${responseText.substring(0, 200)}`);
+      }
+      
       const data = await response.json();
 
       if (!response.ok) {
@@ -193,6 +234,14 @@ export const authService = {
         body: JSON.stringify(updates)
       });
 
+      // Check if response is JSON before parsing
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        const responseText = await response.text();
+        console.error('Non-JSON response in updateUserProfile:', responseText);
+        throw new Error(`Server returned non-JSON response (${response.status}): ${responseText.substring(0, 200)}`);
+      }
+      
       const data = await response.json();
 
       if (!response.ok) {
@@ -247,7 +296,22 @@ export const authService = {
   async isAuthenticated(): Promise<boolean> {
     try {
       const token = await AsyncStorage.getItem('accessToken');
-      return !!token;
+      if (!token) return false;
+      
+      // Basic token validation (check if it's expired)
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        const currentTime = Math.floor(Date.now() / 1000);
+        if (payload.exp && payload.exp < currentTime) {
+          console.log('Token is expired, attempting refresh...');
+          const refreshResult = await this.refreshToken();
+          return refreshResult.success;
+        }
+        return true;
+      } catch (error) {
+        console.log('Token validation failed:', error);
+        return false;
+      }
     } catch (error) {
       return false;
     }

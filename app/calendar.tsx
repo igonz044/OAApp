@@ -429,12 +429,12 @@ export default function CalendarScreen() {
                   {showPeriodDropdown && (
                     <View style={styles.dropdownMenu}>
                       {['AM', 'PM'].map((period) => (
-                        <TouchableOpacity
+                <TouchableOpacity
                           key={period}
-                          style={[
+                  style={[
                             styles.dropdownOption,
                             customPeriod === period && styles.dropdownOptionSelected,
-                          ]}
+                  ]}
                                                       onPress={() => {
                               setCustomPeriod(period as 'AM' | 'PM');
                               setShowPeriodDropdown(false);
@@ -449,15 +449,15 @@ export default function CalendarScreen() {
                               const timeId = `custom_${hour24}_${customMinute}`;
                               setSelectedTime(timeId);
                             }}
-                        >
-                          <Text style={[
+                >
+                  <Text style={[
                             styles.dropdownOptionText,
                             customPeriod === period && styles.dropdownOptionTextSelected,
-                          ]}>
+                  ]}>
                             {period}
-                          </Text>
-                        </TouchableOpacity>
-                      ))}
+                  </Text>
+                </TouchableOpacity>
+              ))}
                     </View>
                   )}
                 </View>

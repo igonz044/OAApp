@@ -93,12 +93,12 @@ export default function CoachScreen() {
               upcomingSessions.map((session) => (
                 <View key={session.id} style={styles.sessionCard}>
                   <View style={styles.sessionInfo}>
-                    <Text style={styles.sessionTopic}>{session.goal}</Text>
-                    <Text style={styles.sessionTime}>{formatSessionTime(session)}</Text>
-                    <Text style={styles.sessionType}>
-                      {session.sessionType === 'call' ? '📞 Voice Call' : '💬 Text Chat'}
-                      {session.recurring !== 'none' && ` • ${session.recurring.charAt(0).toUpperCase() + session.recurring.slice(1)}`}
-                    </Text>
+                  <Text style={styles.sessionTopic}>{session.goal}</Text>
+                  <Text style={styles.sessionTime}>{formatSessionTime(session)}</Text>
+                  <Text style={styles.sessionType}>
+                    {session.sessionType === 'call' ? '📞 Voice Call' : '💬 Text Chat'}
+                    {session.recurring !== 'none' && ` • ${session.recurring.charAt(0).toUpperCase() + session.recurring.slice(1)}`}
+                  </Text>
                   </View>
                   
                   {canJoinSession(session) && (

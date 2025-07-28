@@ -19,20 +19,20 @@ export default function ReviewScreen() {
   const handleApprove = async () => {
     if (sessionData) {
       try {
-        // Add the session to the sessions list
+      // Add the session to the sessions list
         await addSession({
-          goal: sessionData.goal,
-          date: sessionData.date,
-          time: sessionData.time,
-          recurring: sessionData.recurring,
-          sessionType: sessionData.sessionType,
-          fullDate: sessionData.fullDate!,
-          displayTime: sessionData.displayTime!,
-        });
-        
-        console.log('Session approved and added:', sessionData);
-        clearSessionData(); // Clear the session data after approval
-        router.push('/confirmation');
+        goal: sessionData.goal,
+        date: sessionData.date,
+        time: sessionData.time,
+        recurring: sessionData.recurring,
+        sessionType: sessionData.sessionType,
+        fullDate: sessionData.fullDate!,
+        displayTime: sessionData.displayTime!,
+      });
+      
+      console.log('Session approved and added:', sessionData);
+    clearSessionData(); // Clear the session data after approval
+    router.push('/confirmation');
       } catch (error) {
         console.error('Error adding session:', error);
         Alert.alert('Error', 'Failed to schedule session. Please try again.');

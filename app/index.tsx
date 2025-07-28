@@ -93,13 +93,13 @@ export default function LoginScreen() {
         style={styles.keyboardView}
       >
         <ScrollView contentContainerStyle={styles.scrollContent}>
-          <View style={styles.phoneContainer}>
-            <View style={styles.header}>
+        <View style={styles.phoneContainer}>
+          <View style={styles.header}>
               <Text style={styles.logo}>OusAuris</Text>
-              <Text style={styles.tagline}>Your wellness journey starts here</Text>
-            </View>
-            
-            <View style={styles.content}>
+            <Text style={styles.tagline}>Your wellness journey starts here</Text>
+          </View>
+          
+          <View style={styles.content}>
               {error ? (
                 <View style={styles.errorContainer}>
                   <Text style={styles.errorText}>{error}</Text>
@@ -176,34 +176,34 @@ export default function LoginScreen() {
                 </>
               )}
               
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>Email</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Enter your email"
-                  placeholderTextColor="#9CA3AF"
-                  value={email}
-                  onChangeText={setEmail}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                />
-              </View>
-              
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>Password</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Enter your password"
-                  placeholderTextColor="#9CA3AF"
-                  value={password}
-                  onChangeText={setPassword}
-                  secureTextEntry
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                />
-              </View>
-              
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Email</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Enter your email"
+                placeholderTextColor="#9CA3AF"
+                value={email}
+                onChangeText={setEmail}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+            </View>
+            
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Password</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Enter your password"
+                placeholderTextColor="#9CA3AF"
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+            </View>
+            
               <TouchableOpacity 
                 style={styles.btnPrimary} 
                 onPress={isSignup ? handleSignup : handleSignIn}
@@ -212,15 +212,15 @@ export default function LoginScreen() {
                 <Text style={styles.btnPrimaryText}>
                   {isLoading ? 'Loading...' : (isSignup ? 'Create Account' : 'Sign In')}
                 </Text>
-              </TouchableOpacity>
-              
+            </TouchableOpacity>
+            
               <TouchableOpacity style={styles.btnSecondary} onPress={toggleMode}>
                 <Text style={styles.btnSecondaryText}>
                   {isSignup ? 'Already have an account? Sign In' : 'Need an account? Sign Up'}
                 </Text>
-              </TouchableOpacity>
-            </View>
+            </TouchableOpacity>
           </View>
+        </View>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>

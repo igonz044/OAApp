@@ -73,6 +73,14 @@ class PaymentService {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
+      // Check if response is JSON before parsing
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        const responseText = await response.text();
+        console.error('Non-JSON response in createSubscription:', responseText);
+        throw new Error(`Server returned non-JSON response (${response.status}): ${responseText.substring(0, 200)}`);
+      }
+      
       const data = await response.json();
       return data;
     } catch (error) {
@@ -112,6 +120,14 @@ class PaymentService {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
+      // Check if response is JSON before parsing
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        const responseText = await response.text();
+        console.error('Non-JSON response in getSubscriptionDetails:', responseText);
+        throw new Error(`Server returned non-JSON response (${response.status}): ${responseText.substring(0, 200)}`);
+      }
+      
       const data = await response.json();
       return data;
     } catch (error) {
@@ -217,6 +233,14 @@ class PaymentService {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
+      // Check if response is JSON before parsing
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        const responseText = await response.text();
+        console.error('Non-JSON response in getUsageStatistics:', responseText);
+        throw new Error(`Server returned non-JSON response (${response.status}): ${responseText.substring(0, 200)}`);
+      }
+      
       const data = await response.json();
       return data;
     } catch (error) {
