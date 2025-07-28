@@ -1,5 +1,5 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Alert,
   SafeAreaView,
@@ -13,6 +13,7 @@ import {
 import { STRIPE_CONFIG, PAYMENT_ERRORS } from '../utils/stripeConfig';
 import { paymentService } from '../utils/paymentService';
 import { usePayment } from '../utils/paymentContext';
+import { useAuth } from '../utils/authContext';
 
 export default function PaymentCheckoutScreen() {
   const { tierId, tierName, price } = useLocalSearchParams<{
@@ -23,6 +24,14 @@ export default function PaymentCheckoutScreen() {
 
   const [isLoading, setIsLoading] = useState(false);
   const { updateSubscriptionStatus, isDevMode } = usePayment();
+  const { isAuthenticated } = useAuth();
+
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (!isAuthenticated) {
+      router.replace('/');
+    }
+  }, [isAuthenticated]);
 
   const handlePayment = async () => {
     try {

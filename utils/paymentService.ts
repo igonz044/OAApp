@@ -1,4 +1,5 @@
 import { STRIPE_CONFIG, SUBSCRIPTION_TIERS } from './stripeConfig';
+import { authService } from './authService';
 
 export interface SubscriptionResponse {
   subscriptionId: string;
@@ -51,12 +52,16 @@ class PaymentService {
     }
 
     try {
+      const accessToken = await authService.getAccessToken();
+      if (!accessToken) {
+        throw new Error('No access token available. Please log in.');
+      }
+
       const response = await fetch(`${this.baseUrl}${STRIPE_CONFIG.apiEndpoints.createSubscription}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          // Add your authentication header here
-          // 'Authorization': `Bearer ${token}`,
+          'Authorization': `Bearer ${accessToken}`,
         },
         body: JSON.stringify({
           priceId,
@@ -90,12 +95,16 @@ class PaymentService {
     }
 
     try {
+      const accessToken = await authService.getAccessToken();
+      if (!accessToken) {
+        throw new Error('No access token available. Please log in.');
+      }
+
       const response = await fetch(`${this.baseUrl}${STRIPE_CONFIG.apiEndpoints.getSubscriptionDetails}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
-          // Add your authentication header here
-          // 'Authorization': `Bearer ${token}`,
+          'Authorization': `Bearer ${accessToken}`,
         },
       });
 
@@ -120,12 +129,16 @@ class PaymentService {
     }
 
     try {
+      const accessToken = await authService.getAccessToken();
+      if (!accessToken) {
+        throw new Error('No access token available. Please log in.');
+      }
+
       const response = await fetch(`${this.baseUrl}${STRIPE_CONFIG.apiEndpoints.cancelSubscription}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          // Add your authentication header here
-          // 'Authorization': `Bearer ${token}`,
+          'Authorization': `Bearer ${accessToken}`,
         },
         body: JSON.stringify({
           subscriptionId,
@@ -150,12 +163,16 @@ class PaymentService {
     }
 
     try {
+      const accessToken = await authService.getAccessToken();
+      if (!accessToken) {
+        throw new Error('No access token available. Please log in.');
+      }
+
       const response = await fetch(`${this.baseUrl}${STRIPE_CONFIG.apiEndpoints.reactivateSubscription}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          // Add your authentication header here
-          // 'Authorization': `Bearer ${token}`,
+          'Authorization': `Bearer ${accessToken}`,
         },
         body: JSON.stringify({
           subscriptionId,
@@ -183,12 +200,16 @@ class PaymentService {
     }
 
     try {
+      const accessToken = await authService.getAccessToken();
+      if (!accessToken) {
+        throw new Error('No access token available. Please log in.');
+      }
+
       const response = await fetch(`${this.baseUrl}${STRIPE_CONFIG.apiEndpoints.getUsageStatistics}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
-          // Add your authentication header here
-          // 'Authorization': `Bearer ${token}`,
+          'Authorization': `Bearer ${accessToken}`,
         },
       });
 

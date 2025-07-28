@@ -8,6 +8,7 @@ import { initializeTimezone } from '../utils/timezone';
 import { SessionProvider } from '../utils/sessionContext';
 import { SessionsProvider } from '../utils/sessionsContext';
 import { PaymentProvider } from '../utils/paymentContext';
+import { AuthProvider } from '../utils/authContext';
 import { notificationService } from '../utils/notificationService';
 import * as Notifications from 'expo-notifications';
 
@@ -43,29 +44,31 @@ export default function RootLayout() {
   }
 
   return (
-    <PaymentProvider>
-      <SessionProvider>
-        <SessionsProvider>
-          <StatusBar style="light" backgroundColor="#2E2C58" />
-          <Stack
-            screenOptions={{
-              headerShown: false,
-              contentStyle: styles.container,
-            }}
-          >
-            <Stack.Screen name="index" />
-            <Stack.Screen name="paywall" />
-            <Stack.Screen name="payment-checkout" />
-            <Stack.Screen name="(tabs)" />
-            <Stack.Screen name="goal-selection" />
-            <Stack.Screen name="session-type" />
-            <Stack.Screen name="calendar" />
-            <Stack.Screen name="review" />
-            <Stack.Screen name="confirmation" />
-          </Stack>
-        </SessionsProvider>
-      </SessionProvider>
-    </PaymentProvider>
+    <AuthProvider>
+      <PaymentProvider>
+        <SessionProvider>
+          <SessionsProvider>
+            <StatusBar style="light" backgroundColor="#2E2C58" />
+            <Stack
+              screenOptions={{
+                headerShown: false,
+                contentStyle: styles.container,
+              }}
+            >
+              <Stack.Screen name="index" />
+              <Stack.Screen name="paywall" />
+              <Stack.Screen name="payment-checkout" />
+              <Stack.Screen name="(tabs)" />
+              <Stack.Screen name="goal-selection" />
+              <Stack.Screen name="session-type" />
+              <Stack.Screen name="calendar" />
+              <Stack.Screen name="review" />
+              <Stack.Screen name="confirmation" />
+            </Stack>
+          </SessionsProvider>
+        </SessionProvider>
+      </PaymentProvider>
+    </AuthProvider>
   );
 }
 

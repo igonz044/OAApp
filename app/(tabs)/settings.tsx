@@ -10,10 +10,12 @@ import {
     View,
 } from 'react-native';
 import { usePayment } from '../../utils/paymentContext';
+import { useAuth } from '../../utils/authContext';
 import { notificationService } from '../../utils/notificationService';
 
 export default function SettingsScreen() {
   const { subscriptionStatus, isLoading } = usePayment();
+  const { user, logout } = useAuth();
 
   const handleSettingPress = (setting: string) => {
     Alert.alert('Coming Soon', `${setting} will be available soon`);
@@ -42,7 +44,7 @@ export default function SettingsScreen() {
     }
   };
 
-  const handleSignOut = () => {
+  const handleSignOut = async () => {
     Alert.alert(
       'Sign Out',
       'Are you sure you want to sign out? You will need to log in again to access your account.',
@@ -51,9 +53,14 @@ export default function SettingsScreen() {
         { 
           text: 'Sign Out', 
           style: 'destructive',
-          onPress: () => {
-            console.log('User confirmed sign out, navigating to login...');
-            router.replace('/');
+          onPress: async () => {
+            try {
+              await logout();
+              console.log('User signed out successfully');
+            } catch (error) {
+              console.error('Sign out error:', error);
+              Alert.alert('Error', 'Failed to sign out. Please try again.');
+            }
           }
         }
       ]
@@ -103,6 +110,11 @@ export default function SettingsScreen() {
       <ScrollView style={styles.scrollView}>
         <View style={styles.header}>
           <Text style={styles.greeting}>Settings</Text>
+          {user && (
+            <Text style={styles.userInfo}>
+              {user.first_name} {user.last_name}
+            </Text>
+          )}
         </View>
         
         <View style={styles.content}>
@@ -186,6 +198,11 @@ const styles = StyleSheet.create({
     fontSize: 24,
     color: '#E0C68B',
     fontWeight: 'bold',
+  },
+  userInfo: {
+    fontSize: 16,
+    color: '#C4B8DD',
+    marginTop: 5,
   },
   content: {
     paddingHorizontal: 20,

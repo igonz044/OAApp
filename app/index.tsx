@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     Alert,
     KeyboardAvoidingView,
@@ -10,25 +10,81 @@ import {
     TextInput,
     TouchableOpacity,
     View,
+    ScrollView,
+    ActivityIndicator,
 } from 'react-native';
+import { useAuth } from '../utils/authContext';
 
 export default function LoginScreen() {
+  const { login, signup, isLoading, isAuthenticated } = useAuth();
+  const [isSignup, setIsSignup] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [dateOfBirth, setDateOfBirth] = useState('');
+  const [gender, setGender] = useState('');
+  const [mainGoal, setMainGoal] = useState('');
+  const [error, setError] = useState('');
 
-  const handleSignIn = () => {
+  // Redirect to paywall if already authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      router.replace('/paywall');
+    }
+  }, [isAuthenticated]);
+
+  const handleSignIn = async () => {
     if (!email || !password) {
-      Alert.alert('Error', 'Please fill in all fields');
+      setError('Please fill in all fields');
       return;
     }
-    // In a real app, you would authenticate here
-    router.push('/paywall');
+
+    setError('');
+    const response = await login(email, password);
+    
+    if (!response.success) {
+      setError(response.error || 'Login failed');
+    }
   };
 
-  const handleCreateAccount = () => {
-    // In a real app, this would navigate to registration
-    Alert.alert('Coming Soon', 'Account creation will be available soon');
+  const handleSignup = async () => {
+    if (!email || !password || !firstName || !lastName || !dateOfBirth || !gender || !mainGoal) {
+      setError('Please fill in all fields');
+      return;
+    }
+
+    setError('');
+    const response = await signup({
+      first_name: firstName,
+      last_name: lastName,
+      email,
+      password,
+      date_of_birth: dateOfBirth,
+      gender,
+      main_goal: mainGoal
+    });
+    
+    if (!response.success) {
+      setError(response.error || 'Signup failed');
+    }
   };
+
+  const toggleMode = () => {
+    setIsSignup(!isSignup);
+    setError('');
+  };
+
+  if (isLoading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#E0C68B" />
+          <Text style={styles.loadingText}>Loading...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -36,50 +92,136 @@ export default function LoginScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardView}
       >
-        <View style={styles.phoneContainer}>
-          <View style={styles.header}>
-            <Text style={styles.logo}>AusOuris</Text>
-            <Text style={styles.tagline}>Your wellness journey starts here</Text>
-          </View>
-          
-          <View style={styles.content}>
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Email</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Enter your email"
-                placeholderTextColor="#9CA3AF"
-                value={email}
-                onChangeText={setEmail}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                autoCorrect={false}
-              />
+        <ScrollView contentContainerStyle={styles.scrollContent}>
+          <View style={styles.phoneContainer}>
+            <View style={styles.header}>
+              <Text style={styles.logo}>OusAuris</Text>
+              <Text style={styles.tagline}>Your wellness journey starts here</Text>
             </View>
             
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Password</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Enter your password"
-                placeholderTextColor="#9CA3AF"
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry
-                autoCapitalize="none"
-                autoCorrect={false}
-              />
+            <View style={styles.content}>
+              {error ? (
+                <View style={styles.errorContainer}>
+                  <Text style={styles.errorText}>{error}</Text>
+                </View>
+              ) : null}
+
+              {isSignup && (
+                <>
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.label}>First Name</Text>
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Enter your first name"
+                      placeholderTextColor="#9CA3AF"
+                      value={firstName}
+                      onChangeText={setFirstName}
+                      autoCapitalize="words"
+                      autoCorrect={false}
+                    />
+                  </View>
+                  
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.label}>Last Name</Text>
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Enter your last name"
+                      placeholderTextColor="#9CA3AF"
+                      value={lastName}
+                      onChangeText={setLastName}
+                      autoCapitalize="words"
+                      autoCorrect={false}
+                    />
+                  </View>
+                  
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.label}>Date of Birth</Text>
+                    <TextInput
+                      style={styles.input}
+                      placeholder="YYYY-MM-DD"
+                      placeholderTextColor="#9CA3AF"
+                      value={dateOfBirth}
+                      onChangeText={setDateOfBirth}
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                    />
+                  </View>
+                  
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.label}>Gender</Text>
+                    <TextInput
+                      style={styles.input}
+                      placeholder="male/female/other"
+                      placeholderTextColor="#9CA3AF"
+                      value={gender}
+                      onChangeText={setGender}
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                    />
+                  </View>
+                  
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.label}>Main Goal</Text>
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Describe your main wellness goal"
+                      placeholderTextColor="#9CA3AF"
+                      value={mainGoal}
+                      onChangeText={setMainGoal}
+                      multiline
+                      numberOfLines={3}
+                      textAlignVertical="top"
+                    />
+                  </View>
+                </>
+              )}
+              
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Email</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Enter your email"
+                  placeholderTextColor="#9CA3AF"
+                  value={email}
+                  onChangeText={setEmail}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                />
+              </View>
+              
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Password</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Enter your password"
+                  placeholderTextColor="#9CA3AF"
+                  value={password}
+                  onChangeText={setPassword}
+                  secureTextEntry
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                />
+              </View>
+              
+              <TouchableOpacity 
+                style={styles.btnPrimary} 
+                onPress={isSignup ? handleSignup : handleSignIn}
+                disabled={isLoading}
+              >
+                <Text style={styles.btnPrimaryText}>
+                  {isLoading ? 'Loading...' : (isSignup ? 'Create Account' : 'Sign In')}
+                </Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity style={styles.btnSecondary} onPress={toggleMode}>
+                <Text style={styles.btnSecondaryText}>
+                  {isSignup ? 'Already have an account? Sign In' : 'Need an account? Sign Up'}
+                </Text>
+              </TouchableOpacity>
             </View>
-            
-            <TouchableOpacity style={styles.btnPrimary} onPress={handleSignIn}>
-              <Text style={styles.btnPrimaryText}>Sign In</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity style={styles.btnSecondary} onPress={handleCreateAccount}>
-              <Text style={styles.btnSecondaryText}>Create Account</Text>
-            </TouchableOpacity>
           </View>
-        </View>
+        </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -93,6 +235,20 @@ const styles = StyleSheet.create({
   keyboardView: {
     flex: 1,
     justifyContent: 'center',
+  },
+  scrollContent: {
+    flexGrow: 1,
+    justifyContent: 'center',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    color: '#C4B8DD',
+    fontSize: 16,
+    marginTop: 10,
   },
   phoneContainer: {
     flex: 1,
@@ -129,6 +285,19 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     paddingHorizontal: 20,
+  },
+  errorContainer: {
+    backgroundColor: '#FEE2E2',
+    borderWidth: 1,
+    borderColor: '#FCA5A5',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 20,
+  },
+  errorText: {
+    color: '#DC2626',
+    fontSize: 14,
+    textAlign: 'center',
   },
   inputGroup: {
     marginBottom: 20,

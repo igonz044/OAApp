@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     SafeAreaView,
     ScrollView,
@@ -10,10 +10,19 @@ import {
     Dimensions,
 } from 'react-native';
 import { usePayment } from '../utils/paymentContext';
+import { useAuth } from '../utils/authContext';
 
 export default function PaywallScreen() {
   const [selectedTier, setSelectedTier] = useState<string | null>(null);
   const { subscriptionStatus } = usePayment();
+  const { isAuthenticated, user } = useAuth();
+
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (!isAuthenticated) {
+      router.replace('/');
+    }
+  }, [isAuthenticated]);
 
   const handleSubscribe = () => {
     console.log('handleSubscribe called, selectedTier:', selectedTier);

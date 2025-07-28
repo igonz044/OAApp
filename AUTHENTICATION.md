@@ -44,9 +44,8 @@ https://ousauris-backend-production.up.railway.app
 ## Files Added/Modified
 
 ### New Files
-- `utils/auth.ts` - Authentication service with API integration
-- `utils/AuthContext.tsx` - React Context for authentication state management
-- `utils/AuthGuard.tsx` - Component for protecting routes based on auth state
+- `utils/authService.ts` - Authentication service with API integration
+- `utils/authContext.tsx` - React Context for authentication state management
 - `AUTHENTICATION.md` - This documentation file
 
 ### Modified Files
@@ -70,7 +69,7 @@ https://ousauris-backend-production.up.railway.app
 
 ### Using the Auth Context
 ```typescript
-import { useAuth } from '../utils/AuthContext';
+import { useAuth } from '../utils/authContext';
 
 function MyComponent() {
   const { user, isAuthenticated, login, logout } = useAuth();
@@ -92,18 +91,22 @@ function MyComponent() {
 ```
 
 ### Protecting Routes
+Routes are protected by checking authentication status in the component:
+
 ```typescript
-import { AuthGuard } from '../utils/AuthGuard';
+import { useAuth } from '../utils/authContext';
 
-// Public route (login/signup)
-<AuthGuard requireAuth={false}>
-  <LoginScreen />
-</AuthGuard>
-
-// Protected route (requires authentication)
-<AuthGuard requireAuth={true}>
-  <ProtectedScreen />
-</AuthGuard>
+function ProtectedScreen() {
+  const { isAuthenticated } = useAuth();
+  
+  useEffect(() => {
+    if (!isAuthenticated) {
+      router.replace('/');
+    }
+  }, [isAuthenticated]);
+  
+  // Component content
+}
 ```
 
 ## Error Handling
