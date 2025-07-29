@@ -15,6 +15,7 @@ import { useSessions } from '../../utils/sessionsContext';
 export default function CoachScreen() {
   const { getUpcomingSessions, getCompletedSessions, deleteSession } = useSessions();
   const [showMenu, setShowMenu] = useState<string | null>(null); // Track which session's menu is open
+  const [showPreviousSessions, setShowPreviousSessions] = useState(false); // Track if previous sessions are visible
   
   const upcomingSessions = getUpcomingSessions();
   const completedSessions = getCompletedSessions();
@@ -59,6 +60,10 @@ export default function CoachScreen() {
 
   const toggleMenu = (sessionId: string) => {
     setShowMenu(showMenu === sessionId ? null : sessionId);
+  };
+
+  const togglePreviousSessions = () => {
+    setShowPreviousSessions(!showPreviousSessions);
   };
 
   const canJoinSession = (session: any) => {
@@ -180,22 +185,35 @@ export default function CoachScreen() {
           </View>
           
           <View style={styles.coachSection}>
-            <Text style={styles.sectionTitle}>Previous Sessions</Text>
-            {completedSessions.length > 0 ? (
-              completedSessions.slice(0, 5).map((session) => (
-                <View key={session.id} style={[styles.sessionCard, styles.completedSession]}>
-                  <Text style={styles.sessionTopic}>{session.goal}</Text>
-                  <Text style={styles.sessionTime}>{formatCompletedTime(session)}</Text>
-                  <Text style={styles.sessionType}>
-                    {session.sessionType === 'call' ? '📞 Voice Call' : '💬 Text Chat'}
-                  </Text>
-                </View>
-              ))
-            ) : (
-              <View style={styles.emptyState}>
-                <Text style={styles.emptyStateText}>No previous sessions</Text>
-                <Text style={styles.emptyStateSubtext}>Your completed sessions will appear here</Text>
-              </View>
+            <TouchableOpacity 
+              style={styles.sectionHeader}
+              onPress={togglePreviousSessions}
+            >
+              <Text style={styles.sectionTitle}>Previous Sessions</Text>
+              <Text style={styles.toggleIcon}>
+                {showPreviousSessions ? '▼' : '▶'}
+              </Text>
+            </TouchableOpacity>
+            
+            {showPreviousSessions && (
+              <>
+                {completedSessions.length > 0 ? (
+                  completedSessions.slice(0, 5).map((session) => (
+                    <View key={session.id} style={[styles.sessionCard, styles.completedSession]}>
+                      <Text style={styles.sessionTopic}>{session.goal}</Text>
+                      <Text style={styles.sessionTime}>{formatCompletedTime(session)}</Text>
+                      <Text style={styles.sessionType}>
+                        {session.sessionType === 'call' ? '📞 Voice Call' : '💬 Text Chat'}
+                      </Text>
+                    </View>
+                  ))
+                ) : (
+                  <View style={styles.emptyState}>
+                    <Text style={styles.emptyStateText}>No previous sessions</Text>
+                    <Text style={styles.emptyStateSubtext}>Your completed sessions will appear here</Text>
+                  </View>
+                )}
+              </>
             )}
           </View>
         </View>
@@ -231,8 +249,18 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     color: '#E0C68B',
-    marginBottom: 15,
     fontSize: 18,
+    fontWeight: 'bold',
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 15,
+  },
+  toggleIcon: {
+    color: '#E0C68B',
+    fontSize: 16,
     fontWeight: 'bold',
   },
   sessionCard: {

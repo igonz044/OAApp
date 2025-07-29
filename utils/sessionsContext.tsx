@@ -23,6 +23,7 @@ interface SessionsContextType {
   getUpcomingSessions: () => CoachingSession[];
   getCompletedSessions: () => CoachingSession[];
   loadSessions: () => Promise<void>;
+  cleanupOldSessions: () => void;
 }
 
 const SessionsContext = createContext<SessionsContextType | undefined>(undefined);
@@ -45,6 +46,22 @@ export const SessionsProvider: React.FC<SessionsProviderProps> = ({ children }) 
   // Load sessions from AsyncStorage on mount
   useEffect(() => {
     loadSessions();
+  }, []);
+
+  // Clean up old sessions when sessions change
+  useEffect(() => {
+    if (sessions.length > 0) {
+      cleanupOldSessions();
+    }
+  }, [sessions]);
+
+  // Set up periodic cleanup (every hour)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      cleanupOldSessions();
+    }, 60 * 60 * 1000); // Run every hour
+
+    return () => clearInterval(interval);
   }, []);
 
   const loadSessions = async () => {
@@ -131,6 +148,48 @@ export const SessionsProvider: React.FC<SessionsProviderProps> = ({ children }) 
       .sort((a, b) => b.fullDate.getTime() - a.fullDate.getTime());
   };
 
+  // Clean up sessions older than 7 days and mark past sessions as completed
+  const cleanupOldSessions = () => {
+    const now = new Date();
+    const sevenDaysAgo = new Date(now.getTime() - (7 * 24 * 60 * 60 * 1000));
+    
+    let sessionsChanged = false;
+    let sessionsToKeep = sessions;
+    
+    // First, mark past sessions as completed
+    const updatedSessions = sessions.map(session => {
+      if (session.status === 'upcoming' && session.fullDate < now) {
+        sessionsChanged = true;
+        return { ...session, status: 'completed' as const };
+      }
+      return session;
+    });
+    
+    // Then, remove sessions older than 7 days
+    sessionsToKeep = updatedSessions.filter(session => {
+      // Keep upcoming sessions
+      if (session.status === 'upcoming' && session.fullDate > now) {
+        return true;
+      }
+      
+      // Keep completed sessions that are less than 7 days old
+      if (session.status === 'completed' && session.fullDate > sevenDaysAgo) {
+        return true;
+      }
+      
+      return false;
+    });
+
+    if (sessionsChanged || sessionsToKeep.length !== sessions.length) {
+      const deletedCount = sessions.length - sessionsToKeep.length;
+      if (deletedCount > 0) {
+        console.log(`Cleaned up ${deletedCount} old sessions`);
+      }
+      setSessions(sessionsToKeep);
+      saveSessions(sessionsToKeep);
+    }
+  };
+
   const value: SessionsContextType = {
     sessions,
     addSession,
@@ -139,6 +198,7 @@ export const SessionsProvider: React.FC<SessionsProviderProps> = ({ children }) 
     getUpcomingSessions,
     getCompletedSessions,
     loadSessions,
+    cleanupOldSessions,
   };
 
   return (
