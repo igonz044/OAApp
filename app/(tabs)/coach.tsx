@@ -87,6 +87,13 @@ export default function CoachScreen() {
         </View>
         
         <View style={styles.content}>
+          <TouchableOpacity 
+            style={styles.btnPrimary} 
+            onPress={handleScheduleNewCoaching}
+          >
+            <Text style={styles.btnPrimaryText}>Schedule New Wellness Coaching</Text>
+          </TouchableOpacity>
+          
           <View style={styles.coachSection}>
             <Text style={styles.sectionTitle}>Upcoming Sessions</Text>
             {upcomingSessions.length > 0 ? (
@@ -140,13 +147,6 @@ export default function CoachScreen() {
               </View>
             )}
           </View>
-          
-          <TouchableOpacity 
-            style={styles.btnPrimary} 
-            onPress={handleScheduleNewCoaching}
-          >
-            <Text style={styles.btnPrimaryText}>Schedule New Wellness Coaching</Text>
-          </TouchableOpacity>
         </View>
       </ScrollView>
     </SafeAreaView>

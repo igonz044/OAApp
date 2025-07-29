@@ -13,6 +13,15 @@ import { useSession } from '../utils/sessionContext';
 
 type SessionType = 'call' | 'chat' | '';
 
+type SessionTypeOption = {
+  id: SessionType;
+  emoji: string;
+  title: string;
+  description: string;
+  features: string[];
+  disabled: boolean;
+};
+
 export default function SessionTypeScreen() {
   const [selectedType, setSelectedType] = useState<SessionType>('');
   const { sessionData, setSessionData } = useSession();
@@ -40,20 +49,22 @@ export default function SessionTypeScreen() {
     router.back();
   };
 
-  const sessionTypes = [
+  const sessionTypes: SessionTypeOption[] = [
     { 
-      id: 'chat' as SessionType, 
+      id: 'chat', 
       emoji: '💬', 
       title: 'Text Chat', 
       description: 'Type messages with your AI coach',
-      features: ['Real-time messaging', 'Easy to review', 'No background noise', 'Perfect for detailed discussions']
+      features: ['Real-time messaging', 'Easy to review', 'No background noise', 'Perfect for detailed discussions'],
+      disabled: false
     },
     { 
-      id: 'call' as SessionType, 
+      id: 'call', 
       emoji: '📞', 
       title: 'Voice Call', 
-      description: 'Speak directly with your AI coach',
-      features: ['Natural conversation', 'Faster communication', 'Voice recognition', 'More personal interaction']
+      description: 'Coming Soon! Voice calls will be available in a future update',
+      features: ['Natural conversation', 'Faster communication', 'Voice recognition', 'More personal interaction'],
+      disabled: true
     },
   ];
 
@@ -76,22 +87,43 @@ export default function SessionTypeScreen() {
               style={[
                 styles.typeOption,
                 selectedType === type.id && styles.typeOptionSelected,
+                type.disabled && styles.typeOptionDisabled,
               ]}
-              onPress={() => handleTypeSelect(type.id)}
+              onPress={() => {
+                if (type.disabled) return; // Prevent selection of disabled options
+                handleTypeSelect(type.id);
+              }}
+              disabled={type.disabled}
             >
               <View style={styles.typeHeader}>
                 <Text style={styles.typeEmoji}>{type.emoji}</Text>
                 <View style={styles.typeText}>
-                  <Text style={styles.typeTitle}>{type.title}</Text>
-                  <Text style={styles.typeDescription}>{type.description}</Text>
+                  <Text style={[
+                    styles.typeTitle,
+                    type.disabled && styles.typeTitleDisabled,
+                  ]}>
+                    {type.title}
+                  </Text>
+                  <Text style={[
+                    styles.typeDescription,
+                    type.disabled && styles.typeDescriptionDisabled,
+                  ]}>
+                    {type.description}
+                  </Text>
                 </View>
               </View>
               
               <View style={styles.featuresList}>
                 {type.features.map((feature, index) => (
                   <View key={index} style={styles.featureItem}>
-                    <Text style={styles.featureBullet}>•</Text>
-                    <Text style={styles.featureText}>{feature}</Text>
+                    <Text style={[
+                      styles.featureBullet,
+                      type.disabled && styles.featureBulletDisabled,
+                    ]}>•</Text>
+                    <Text style={[
+                      styles.featureText,
+                      type.disabled && styles.featureTextDisabled,
+                    ]}>{feature}</Text>
                   </View>
                 ))}
               </View>
@@ -173,6 +205,11 @@ const styles = StyleSheet.create({
     borderColor: '#E0C68B',
     backgroundColor: 'rgba(224, 198, 139, 0.1)',
   },
+  typeOptionDisabled: {
+    borderColor: '#6B7280',
+    backgroundColor: 'rgba(107, 114, 128, 0.1)',
+    opacity: 0.6,
+  },
   typeHeader: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -195,6 +232,12 @@ const styles = StyleSheet.create({
     color: '#C4B8DD',
     fontSize: 14,
   },
+  typeTitleDisabled: {
+    color: '#6B7280',
+  },
+  typeDescriptionDisabled: {
+    color: '#6B7280',
+  },
   featuresList: {
     marginLeft: 47, // Align with text content
   },
@@ -213,6 +256,17 @@ const styles = StyleSheet.create({
     color: '#C4B8DD',
     fontSize: 14,
     flex: 1,
+  },
+  featureBulletDisabled: {
+    color: '#6B7280',
+  },
+  featureTextDisabled: {
+    color: '#6B7280',
+  },
+  comingSoonText: {
+    color: '#2E2C58',
+    fontSize: 10,
+    fontWeight: 'bold',
   },
   btnPrimary: {
     width: '100%',

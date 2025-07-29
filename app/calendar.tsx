@@ -32,7 +32,7 @@ export default function CalendarScreen() {
   
   const [selectedDate, setSelectedDate] = useState<string>('');
   const [selectedTime, setSelectedTime] = useState<string>('');
-  const [selectedRecurring, setSelectedRecurring] = useState<RecurringOption>('none');
+  // const [selectedRecurring, setSelectedRecurring] = useState<RecurringOption>('none'); // Commented out - all sessions are one-time only
   const [currentWeek, setCurrentWeek] = useState(0); // 0 = current week, 1 = next week, etc.
   const [dateOptions, setDateOptions] = useState<DateOption[]>([]);
   // Removed showTimePicker state - no longer using modal
@@ -82,7 +82,59 @@ export default function CalendarScreen() {
   const handleDateSelect = (dateId: string) => {
     setSelectedDate(dateId);
     setSelectedTime(''); // Reset time when date changes
-    setSelectedRecurring('none'); // Reset recurring when date changes
+    // setSelectedRecurring('none'); // Reset recurring when date changes - commented out
+    
+    // Auto-set to next available time slot
+    const selectedDateObj = dateOptions.find(option => option.id === dateId)?.fullDate;
+    if (selectedDateObj) {
+      const now = new Date();
+      const isToday = selectedDateObj.toDateString() === now.toDateString();
+      
+      if (isToday) {
+        // For today, set to next available time slot
+        const currentHour = now.getHours();
+        const currentMinute = now.getMinutes();
+        
+        // Find next available time slot (round up to next 15-minute interval)
+        let nextMinute = Math.ceil(currentMinute / 15) * 15;
+        let nextHour = currentHour;
+        
+        if (nextMinute >= 60) {
+          nextMinute = 0;
+          nextHour += 1;
+        }
+        
+        // Convert to 12-hour format for display
+        let displayHour = nextHour;
+        let period: 'AM' | 'PM' = 'AM';
+        
+        if (nextHour === 0) {
+          displayHour = 12;
+          period = 'AM';
+        } else if (nextHour > 12) {
+          displayHour = nextHour - 12;
+          period = 'PM';
+        } else if (nextHour === 12) {
+          period = 'PM';
+        }
+        
+        setCustomHour(displayHour);
+        setCustomMinute(nextMinute);
+        setCustomPeriod(period);
+        
+        // Set the selected time
+        const timeId = `custom_${nextHour}_${nextMinute}`;
+        setSelectedTime(timeId);
+      } else {
+        // For future dates, set to a reasonable default (9:00 AM)
+        setCustomHour(9);
+        setCustomMinute(0);
+        setCustomPeriod('AM');
+        
+        const timeId = 'custom_9_0';
+        setSelectedTime(timeId);
+      }
+    }
   };
 
   // Removed handleTimeSelect - users will use dropdown menus instead
@@ -91,8 +143,38 @@ export default function CalendarScreen() {
 
   // Removed handleCustomTimeConfirm - no longer using modal confirmation
 
+  // Recurring selection handler - commented out for future implementation
+  /*
   const handleRecurringSelect = (option: RecurringOption) => {
     setSelectedRecurring(option);
+  };
+  */
+
+  // Check if a time is in the past
+  const isTimeInPast = (date: Date, hour: number, minute: number): boolean => {
+    const now = new Date();
+    const selectedDateTime = new Date(date);
+    selectedDateTime.setHours(hour, minute, 0, 0);
+    
+    return selectedDateTime <= now;
+  };
+
+  // Check if a specific time option should be disabled
+  const isTimeOptionDisabled = (hour: number, minute: number): boolean => {
+    if (!selectedDate) return false;
+    
+    const selectedDateObj = dateOptions.find(option => option.id === selectedDate)?.fullDate;
+    if (!selectedDateObj) return false;
+    
+    // Convert 12-hour to 24-hour for comparison
+    let hour24 = hour;
+    if (customPeriod === 'PM' && hour !== 12) {
+      hour24 = hour + 12;
+    } else if (customPeriod === 'AM' && hour === 12) {
+      hour24 = 0;
+    }
+    
+    return isTimeInPast(selectedDateObj, hour24, minute);
   };
 
   const handleNext = () => {
@@ -109,6 +191,16 @@ export default function CalendarScreen() {
       const [_, hour24, minute] = selectedTime.split('_');
       selectedTimeObj = new Date(selectedDateObj!);
       selectedTimeObj.setHours(parseInt(hour24), parseInt(minute), 0, 0);
+      
+      // Check if selected time is in the past
+      if (isTimeInPast(selectedDateObj!, parseInt(hour24), parseInt(minute))) {
+        Alert.alert(
+          'Cannot Book in the Past',
+          'Please select a time that is in the future. You cannot book sessions in the past.',
+          [{ text: 'OK', style: 'default' }]
+        );
+        return;
+      }
     }
     
     if (selectedDateObj && selectedTimeObj) {
@@ -120,11 +212,12 @@ export default function CalendarScreen() {
       });
       
       // Update session data with calendar selections
+      // All sessions are one-time only for now (recurring: 'none')
       setSessionData({
         ...sessionData!,
         date: dateLabel,
         time: displayTime,
-        recurring: selectedRecurring,
+        recurring: 'none', // Always set to 'none' since recurring options are disabled
         fullDate: selectedTimeObj, // Use the time-specific date
         displayTime: displayTime,
       });
@@ -132,7 +225,7 @@ export default function CalendarScreen() {
       console.log('Updated session data:', {
         date: dateLabel,
         time: displayTime,
-        recurring: selectedRecurring
+        recurring: 'none' // All sessions are one-time only
       });
     }
     
@@ -148,16 +241,16 @@ export default function CalendarScreen() {
       setCurrentWeek(currentWeek - 1);
       setSelectedDate(''); // Reset selection when changing weeks
       setSelectedTime('');
-      setSelectedRecurring('none');
+      // setSelectedRecurring('none'); // Commented out
     }
   };
 
   const handleNextWeek = () => {
     // Allow navigation to future weeks (no limit)
     setCurrentWeek(currentWeek + 1);
-    setSelectedDate(''); // Reset selection when changing weeks
-    setSelectedTime('');
-    setSelectedRecurring('none');
+          setSelectedDate(''); // Reset selection when changing weeks
+      setSelectedTime('');
+      // setSelectedRecurring('none'); // Commented out
   };
 
   const formatWeekRange = () => {
@@ -212,12 +305,15 @@ export default function CalendarScreen() {
     return `${displayHour}:${customMinute.toString().padStart(2, '0')} ${displayPeriod}`;
   };
 
+  // Recurring options - commented out for future implementation
+  /*
   const recurringOptions = [
     { id: 'none' as RecurringOption, label: 'One-time session', emoji: '📅' },
     { id: 'daily' as RecurringOption, label: 'Daily', emoji: '🌅' },
     { id: 'weekly' as RecurringOption, label: 'Weekly', emoji: '📆' },
     { id: 'monthly' as RecurringOption, label: 'Monthly', emoji: '🗓️' },
   ];
+  */
 
   return (
     <SafeAreaView style={styles.container}>
@@ -263,7 +359,7 @@ export default function CalendarScreen() {
       
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Select Date</Text>
+          {/*<Text style={styles.sectionTitle}>Select Date</Text>*/}
           <View style={styles.calendarGrid}>
             {dateOptions.map((dateOption) => (
               <TouchableOpacity
@@ -293,11 +389,16 @@ export default function CalendarScreen() {
 
         {selectedDate && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Select Time</Text>
+            {/*<Text style={styles.sectionTitle}>Select Time</Text>*/}
             
             {/* Direct Time Picker */}
             <View style={styles.directTimePicker}>
               <Text style={styles.currentTimeDisplay}>{getCurrentTimeDisplay()}</Text>
+              
+              {/*Helpful message about past time prevention
+              <Text style={styles.timeHelpText}>
+                ⏰ Times in the past are automatically disabled to prevent booking sessions in the past.
+              </Text>*/}
               
               <View style={styles.dropdownRow}>
                 {/* Hour Dropdown */}
@@ -319,36 +420,43 @@ export default function CalendarScreen() {
                   {showHourDropdown && (
                     <View style={styles.dropdownMenu}>
                       <ScrollView style={styles.dropdownScroll} showsVerticalScrollIndicator={false}>
-                        {Array.from({ length: 12 }, (_, i) => i + 1).map((hour) => (
-                          <TouchableOpacity
-                            key={hour}
-                            style={[
-                              styles.dropdownOption,
-                              customHour === hour && styles.dropdownOptionSelected,
-                            ]}
-                            onPress={() => {
-                              setCustomHour(hour);
-                              setShowHourDropdown(false);
-                              // Auto-set selected time when hour is chosen
-                              // Convert 12-hour to 24-hour for the time ID
-                              let hour24 = hour;
-                              if (customPeriod === 'PM' && hour !== 12) {
-                                hour24 = hour + 12;
-                              } else if (customPeriod === 'AM' && hour === 12) {
-                                hour24 = 0;
-                              }
-                              const timeId = `custom_${hour24}_${customMinute}`;
-                              setSelectedTime(timeId);
-                            }}
-                          >
-                            <Text style={[
-                              styles.dropdownOptionText,
-                              customHour === hour && styles.dropdownOptionTextSelected,
-                            ]}>
-                              {hour}
-                            </Text>
-                          </TouchableOpacity>
-                        ))}
+                        {Array.from({ length: 12 }, (_, i) => i + 1).map((hour) => {
+                          const isDisabled = isTimeOptionDisabled(hour, customMinute);
+                          return (
+                            <TouchableOpacity
+                              key={hour}
+                              style={[
+                                styles.dropdownOption,
+                                customHour === hour && styles.dropdownOptionSelected,
+                                isDisabled && styles.dropdownOptionDisabled,
+                              ]}
+                              onPress={() => {
+                                if (isDisabled) return; // Prevent selection of disabled times
+                                setCustomHour(hour);
+                                setShowHourDropdown(false);
+                                // Auto-set selected time when hour is chosen
+                                // Convert 12-hour to 24-hour for the time ID
+                                let hour24 = hour;
+                                if (customPeriod === 'PM' && hour !== 12) {
+                                  hour24 = hour + 12;
+                                } else if (customPeriod === 'AM' && hour === 12) {
+                                  hour24 = 0;
+                                }
+                                const timeId = `custom_${hour24}_${customMinute}`;
+                                setSelectedTime(timeId);
+                              }}
+                              disabled={isDisabled}
+                            >
+                              <Text style={[
+                                styles.dropdownOptionText,
+                                customHour === hour && styles.dropdownOptionTextSelected,
+                                isDisabled && styles.dropdownOptionTextDisabled,
+                              ]}>
+                                {hour}
+                              </Text>
+                            </TouchableOpacity>
+                          );
+                        })}
                       </ScrollView>
                     </View>
                   )}
@@ -375,36 +483,43 @@ export default function CalendarScreen() {
                   {showMinuteDropdown && (
                     <View style={styles.dropdownMenu}>
                       <ScrollView style={styles.dropdownScroll} showsVerticalScrollIndicator={false}>
-                        {[0, 15, 30, 45].map((minute) => (
-                          <TouchableOpacity
-                            key={minute}
-                            style={[
-                              styles.dropdownOption,
-                              customMinute === minute && styles.dropdownOptionSelected,
-                            ]}
-                            onPress={() => {
-                              setCustomMinute(minute);
-                              setShowMinuteDropdown(false);
-                              // Auto-set selected time when minute is chosen
-                              // Convert 12-hour to 24-hour for the time ID
-                              let hour24 = customHour;
-                              if (customPeriod === 'PM' && customHour !== 12) {
-                                hour24 = customHour + 12;
-                              } else if (customPeriod === 'AM' && customHour === 12) {
-                                hour24 = 0;
-                              }
-                              const timeId = `custom_${hour24}_${minute}`;
-                              setSelectedTime(timeId);
-                            }}
-                          >
-                            <Text style={[
-                              styles.dropdownOptionText,
-                              customMinute === minute && styles.dropdownOptionTextSelected,
-                            ]}>
-                              {minute.toString().padStart(2, '0')}
-                            </Text>
-                          </TouchableOpacity>
-                        ))}
+                        {[0, 15, 30, 45].map((minute) => {
+                          const isDisabled = isTimeOptionDisabled(customHour, minute);
+                          return (
+                            <TouchableOpacity
+                              key={minute}
+                              style={[
+                                styles.dropdownOption,
+                                customMinute === minute && styles.dropdownOptionSelected,
+                                isDisabled && styles.dropdownOptionDisabled,
+                              ]}
+                              onPress={() => {
+                                if (isDisabled) return; // Prevent selection of disabled times
+                                setCustomMinute(minute);
+                                setShowMinuteDropdown(false);
+                                // Auto-set selected time when minute is chosen
+                                // Convert 12-hour to 24-hour for the time ID
+                                let hour24 = customHour;
+                                if (customPeriod === 'PM' && customHour !== 12) {
+                                  hour24 = customHour + 12;
+                                } else if (customPeriod === 'AM' && customHour === 12) {
+                                  hour24 = 0;
+                                }
+                                const timeId = `custom_${hour24}_${minute}`;
+                                setSelectedTime(timeId);
+                              }}
+                              disabled={isDisabled}
+                            >
+                              <Text style={[
+                                styles.dropdownOptionText,
+                                customMinute === minute && styles.dropdownOptionTextSelected,
+                                isDisabled && styles.dropdownOptionTextDisabled,
+                              ]}>
+                                {minute.toString().padStart(2, '0')}
+                              </Text>
+                            </TouchableOpacity>
+                          );
+                        })}
                       </ScrollView>
                     </View>
                   )}
@@ -426,16 +541,35 @@ export default function CalendarScreen() {
                     <Text style={styles.dropdownArrow}>▼</Text>
                   </TouchableOpacity>
                   
-                  {showPeriodDropdown && (
+                                    {showPeriodDropdown && (
                     <View style={styles.dropdownMenu}>
-                      {['AM', 'PM'].map((period) => (
-                <TouchableOpacity
-                          key={period}
-                  style={[
-                            styles.dropdownOption,
-                            customPeriod === period && styles.dropdownOptionSelected,
-                  ]}
-                                                      onPress={() => {
+                      {['AM', 'PM'].map((period) => {
+                        // Check if this period would make the time in the past
+                        const isDisabled = (() => {
+                          if (!selectedDate) return false;
+                          const selectedDateObj = dateOptions.find(option => option.id === selectedDate)?.fullDate;
+                          if (!selectedDateObj) return false;
+                          
+                          let hour24 = customHour;
+                          if (period === 'PM' && customHour !== 12) {
+                            hour24 = customHour + 12;
+                          } else if (period === 'AM' && customHour === 12) {
+                            hour24 = 0;
+                          }
+                          
+                          return isTimeInPast(selectedDateObj, hour24, customMinute);
+                        })();
+                        
+                        return (
+                          <TouchableOpacity
+                            key={period}
+                            style={[
+                              styles.dropdownOption,
+                              customPeriod === period && styles.dropdownOptionSelected,
+                              isDisabled && styles.dropdownOptionDisabled,
+                            ]}
+                            onPress={() => {
+                              if (isDisabled) return; // Prevent selection of disabled times
                               setCustomPeriod(period as 'AM' | 'PM');
                               setShowPeriodDropdown(false);
                               // Auto-set selected time when period is chosen
@@ -449,15 +583,18 @@ export default function CalendarScreen() {
                               const timeId = `custom_${hour24}_${customMinute}`;
                               setSelectedTime(timeId);
                             }}
-                >
-                  <Text style={[
-                            styles.dropdownOptionText,
-                            customPeriod === period && styles.dropdownOptionTextSelected,
-                  ]}>
-                            {period}
-                  </Text>
-                </TouchableOpacity>
-              ))}
+                            disabled={isDisabled}
+                          >
+                            <Text style={[
+                              styles.dropdownOptionText,
+                              customPeriod === period && styles.dropdownOptionTextSelected,
+                              isDisabled && styles.dropdownOptionTextDisabled,
+                            ]}>
+                              {period}
+                            </Text>
+                          </TouchableOpacity>
+                        );
+                      })}
                     </View>
                   )}
                 </View>
@@ -466,6 +603,7 @@ export default function CalendarScreen() {
           </View>
         )}
 
+        {/* Recurring Options - Commented out for future implementation
         {selectedDate && selectedTime && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Recurring Options</Text>
@@ -491,6 +629,7 @@ export default function CalendarScreen() {
             </View>
           </View>
         )}
+        */}
         
         <TouchableOpacity
           style={[
@@ -998,6 +1137,10 @@ const styles = StyleSheet.create({
   dropdownOptionSelected: {
     backgroundColor: '#E0C68B',
   },
+  dropdownOptionDisabled: {
+    backgroundColor: 'rgba(107, 114, 128, 0.2)',
+    opacity: 0.5,
+  },
   dropdownOptionText: {
     fontSize: 14,
     color: '#F9F8F4',
@@ -1006,6 +1149,10 @@ const styles = StyleSheet.create({
   dropdownOptionTextSelected: {
     color: '#2E2C58',
     fontWeight: 'bold',
+  },
+  dropdownOptionTextDisabled: {
+    color: '#6B7280',
+    opacity: 0.6,
   },
   timeSeparator: {
     fontSize: 20,
@@ -1043,5 +1190,13 @@ const styles = StyleSheet.create({
     padding: 20,
     borderWidth: 1,
     borderColor: 'rgba(196, 184, 221, 0.2)',
+  },
+  timeHelpText: {
+    color: '#C4B8DD',
+    fontSize: 12,
+    textAlign: 'center',
+    marginTop: 10,
+    fontStyle: 'italic',
+    opacity: 0.8,
   },
 }); 
