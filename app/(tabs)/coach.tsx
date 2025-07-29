@@ -1,17 +1,20 @@
 import { router } from 'expo-router';
-import React from 'react';
+import React, { useState } from 'react';
 import {
+    Alert,
     SafeAreaView,
     ScrollView,
     StyleSheet,
     Text,
     TouchableOpacity,
+    TouchableWithoutFeedback,
     View,
 } from 'react-native';
 import { useSessions } from '../../utils/sessionsContext';
 
 export default function CoachScreen() {
-  const { getUpcomingSessions, getCompletedSessions } = useSessions();
+  const { getUpcomingSessions, getCompletedSessions, deleteSession } = useSessions();
+  const [showMenu, setShowMenu] = useState<string | null>(null); // Track which session's menu is open
   
   const upcomingSessions = getUpcomingSessions();
   const completedSessions = getCompletedSessions();
@@ -31,6 +34,31 @@ export default function CoachScreen() {
         isActiveSession: 'true',
       },
     });
+  };
+
+  const handleDeleteSession = (session: any) => {
+    Alert.alert(
+      'Delete Session',
+      `Are you sure you want to delete your "${session.goal}" session on ${formatSessionTime(session)}?`,
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => {
+            deleteSession(session.id);
+            setShowMenu(null); // Close menu after deletion
+          },
+        },
+      ]
+    );
+  };
+
+  const toggleMenu = (sessionId: string) => {
+    setShowMenu(showMenu === sessionId ? null : sessionId);
   };
 
   const canJoinSession = (session: any) => {
@@ -81,7 +109,8 @@ export default function CoachScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView style={styles.scrollView}>
+      <TouchableWithoutFeedback onPress={() => setShowMenu(null)}>
+        <ScrollView style={styles.scrollView}>
         <View style={styles.header}>
           <Text style={styles.greeting}>Coaching Sessions</Text>
         </View>
@@ -100,24 +129,46 @@ export default function CoachScreen() {
               upcomingSessions.map((session) => (
                 <View key={session.id} style={styles.sessionCard}>
                   <View style={styles.sessionInfo}>
-                  <Text style={styles.sessionTopic}>{session.goal}</Text>
-                  <Text style={styles.sessionTime}>{formatSessionTime(session)}</Text>
-                  <Text style={styles.sessionType}>
-                    {session.sessionType === 'call' ? '📞 Voice Call' : '💬 Text Chat'}
-                    {session.recurring !== 'none' && ` • ${session.recurring.charAt(0).toUpperCase() + session.recurring.slice(1)}`}
-                  </Text>
+                    <Text style={styles.sessionTopic}>{session.goal}</Text>
+                    <Text style={styles.sessionTime}>{formatSessionTime(session)}</Text>
+                    <Text style={styles.sessionType}>
+                      {session.sessionType === 'call' ? '📞 Voice Call' : '💬 Text Chat'}
+                      {session.recurring !== 'none' && ` • ${session.recurring.charAt(0).toUpperCase() + session.recurring.slice(1)}`}
+                    </Text>
                   </View>
                   
-                  {canJoinSession(session) && (
+                  <View style={styles.sessionActions}>
+                    {canJoinSession(session) && (
+                      <TouchableOpacity 
+                        style={styles.joinButton}
+                        onPress={() => handleJoinSession(session)}
+                      >
+                        <Text style={styles.joinButtonText}>
+                          {session.sessionType === 'call' ? 'Join Call' : 'Start Chat'}
+                        </Text>
+                      </TouchableOpacity>
+                    )}
+                    
+                    {/* Three-dot menu */}
                     <TouchableOpacity 
-                      style={styles.joinButton}
-                      onPress={() => handleJoinSession(session)}
+                      style={styles.menuButton}
+                      onPress={() => toggleMenu(session.id)}
                     >
-                      <Text style={styles.joinButtonText}>
-                        {session.sessionType === 'call' ? 'Join Call' : 'Start Chat'}
-                      </Text>
+                      <Text style={styles.menuButtonText}>⋮</Text>
                     </TouchableOpacity>
-                  )}
+                    
+                    {/* Menu dropdown */}
+                    {showMenu === session.id && (
+                      <View style={styles.menuDropdown}>
+                        <TouchableOpacity 
+                          style={styles.menuOption}
+                          onPress={() => handleDeleteSession(session)}
+                        >
+                          <Text style={styles.menuOptionText}>🗑️ Delete Session</Text>
+                        </TouchableOpacity>
+                      </View>
+                    )}
+                  </View>
                 </View>
               ))
             ) : (
@@ -148,7 +199,8 @@ export default function CoachScreen() {
             )}
           </View>
         </View>
-      </ScrollView>
+        </ScrollView>
+      </TouchableWithoutFeedback>
     </SafeAreaView>
   );
 }
@@ -196,6 +248,47 @@ const styles = StyleSheet.create({
   },
   sessionInfo: {
     flex: 1,
+  },
+  sessionActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  menuButton: {
+    padding: 8,
+    borderRadius: 4,
+    backgroundColor: 'rgba(196, 184, 221, 0.2)',
+  },
+  menuButtonText: {
+    fontSize: 18,
+    color: '#C4B8DD',
+    fontWeight: 'bold',
+  },
+  menuDropdown: {
+    position: 'absolute',
+    top: '100%',
+    right: 0,
+    backgroundColor: '#2E2C58',
+    borderWidth: 1,
+    borderColor: '#C4B8DD',
+    borderRadius: 8,
+    padding: 8,
+    marginTop: 4,
+    zIndex: 1000,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  menuOption: {
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 4,
+  },
+  menuOptionText: {
+    color: '#F9F8F4',
+    fontSize: 14,
   },
   sessionTopic: {
     fontWeight: 'bold',
