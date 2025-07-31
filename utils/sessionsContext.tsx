@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { notificationService } from './notificationService';
+import { userActivityService } from './userActivityService';
 
 export interface CoachingSession {
   id: string;
@@ -155,11 +156,13 @@ export const SessionsProvider: React.FC<SessionsProviderProps> = ({ children }) 
     
     let sessionsChanged = false;
     let sessionsToKeep = sessions;
+    let newlyCompletedSessions = 0;
     
     // First, mark past sessions as completed
     const updatedSessions = sessions.map(session => {
       if (session.status === 'upcoming' && session.fullDate < now) {
         sessionsChanged = true;
+        newlyCompletedSessions++;
         return { ...session, status: 'completed' as const };
       }
       return session;
@@ -185,6 +188,15 @@ export const SessionsProvider: React.FC<SessionsProviderProps> = ({ children }) 
       if (deletedCount > 0) {
         console.log(`Cleaned up ${deletedCount} old sessions`);
       }
+      
+      // Increment session count for newly completed sessions
+      if (newlyCompletedSessions > 0) {
+        for (let i = 0; i < newlyCompletedSessions; i++) {
+          userActivityService.incrementSessionCount();
+        }
+        console.log(`Marked ${newlyCompletedSessions} sessions as completed`);
+      }
+      
       setSessions(sessionsToKeep);
       saveSessions(sessionsToKeep);
     }
