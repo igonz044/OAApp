@@ -8,6 +8,7 @@ import {
     Text,
     TouchableOpacity,
     View,
+    Linking,
 } from 'react-native';
 import { usePayment } from '../../utils/paymentContext';
 import { useAuth } from '../../utils/authContext';
@@ -20,6 +21,11 @@ export default function SettingsScreen() {
   const handleSettingPress = (setting: string) => {
     if (setting === 'Profile') {
       router.push('/profile');
+    } else if (setting === 'Privacy') {
+      const privacyUrl = 'https://heady-mapusaurus-720.notion.site/Privacy-Policy-2329c5c9eb10808bbd28c0a913a75ce8?pvs=143';
+      Linking.openURL(privacyUrl).catch((err) => {
+        Alert.alert('Error', 'Unable to open Privacy Policy');
+      });
     } else {
       Alert.alert('Coming Soon', `${setting} will be available soon`);
     }
