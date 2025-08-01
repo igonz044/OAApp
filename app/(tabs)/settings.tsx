@@ -18,7 +18,11 @@ export default function SettingsScreen() {
   const { user, logout } = useAuth();
 
   const handleSettingPress = (setting: string) => {
-    Alert.alert('Coming Soon', `${setting} will be available soon`);
+    if (setting === 'Profile') {
+      router.push('/profile');
+    } else {
+      Alert.alert('Coming Soon', `${setting} will be available soon`);
+    }
   };
 
   const handleSubscriptionPress = () => {
@@ -67,23 +71,7 @@ export default function SettingsScreen() {
     );
   };
 
-  const handleTestNotification = async () => {
-    try {
-      await notificationService.sendTestNotification();
-      Alert.alert('Test Notification', 'A test notification will appear in 2 seconds!');
-    } catch (error) {
-      Alert.alert('Error', 'Failed to send test notification');
-    }
-  };
 
-  const handleDebugNotifications = async () => {
-    try {
-      await notificationService.debugScheduledNotifications();
-      Alert.alert('Debug Info', 'Check the console for scheduled notifications info!');
-    } catch (error) {
-      Alert.alert('Error', 'Failed to get debug info');
-    }
-  };
 
   const getSubscriptionText = () => {
     if (isLoading) {
@@ -123,22 +111,6 @@ export default function SettingsScreen() {
             onPress={() => handleSettingPress('Profile')}
           >
             <Text style={styles.settingsText}>Profile</Text>
-            <Text style={styles.arrow}>→</Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity 
-            style={styles.settingsItem}
-            onPress={handleTestNotification}
-          >
-            <Text style={styles.settingsText}>Test Notifications</Text>
-            <Text style={styles.arrow}>→</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity 
-            style={styles.settingsItem}
-            onPress={handleDebugNotifications}
-          >
-            <Text style={styles.settingsText}>Debug Notifications</Text>
             <Text style={styles.arrow}>→</Text>
           </TouchableOpacity>
           
