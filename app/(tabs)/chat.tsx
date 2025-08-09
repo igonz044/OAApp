@@ -48,7 +48,6 @@ export default function ChatScreen() {
 
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputText, setInputText] = useState('');
-  const [showHistory, setShowHistory] = useState(false);
   const [sessionStarted, setSessionStarted] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [freeTrialStatus, setFreeTrialStatus] = useState<any>(null);
@@ -176,7 +175,24 @@ export default function ChatScreen() {
         if (!conversationId && !isActiveSession) {
           conversationId = await createNewConversation();
           if (!conversationId) {
-            Alert.alert('Error', 'Failed to create conversation. Please try again.');
+            // Show upgrade message instead of error
+            const upgradeMessage: Message = {
+              id: (Date.now() + 1).toString(),
+              text: "I'd love to help you with your wellness journey! To continue our conversation, please upgrade to our premium plan for unlimited access to personalized coaching.",
+              isUser: false,
+              timestamp: new Date(),
+            };
+            setMessages(prev => [...prev, upgradeMessage]);
+            
+            // Show upgrade alert
+            Alert.alert(
+              'Upgrade Required',
+              'To continue chatting with your AI wellness coach, please upgrade to our premium plan.',
+              [
+                { text: 'Cancel', style: 'cancel' },
+                { text: 'Upgrade', onPress: () => router.push('/paywall') }
+              ]
+            );
             return;
           }
         }
@@ -231,24 +247,66 @@ export default function ChatScreen() {
             setFreeTrialStatus(updatedStatus);
           }
         } else {
-          // Show error message
-          const errorMessage: Message = {
-            id: (Date.now() + 1).toString(),
-            text: response.error || 'Sorry, I encountered an error. Please try again.',
-            isUser: false,
-            timestamp: new Date(),
-          };
-          setMessages(prev => [...prev, errorMessage]);
+          // Check if it's an upgrade required error
+          if (response.error === 'UPGRADE_REQUIRED') {
+            const upgradeMessage: Message = {
+              id: (Date.now() + 1).toString(),
+              text: response.upgradeMessage || "I'd love to help you with your wellness journey! To continue our conversation, please upgrade to our premium plan for unlimited access to personalized coaching.",
+              isUser: false,
+              timestamp: new Date(),
+            };
+            setMessages(prev => [...prev, upgradeMessage]);
+            
+            // Show upgrade alert
+            Alert.alert(
+              'Upgrade Required',
+              response.upgradeMessage || 'To continue chatting with your AI wellness coach, please upgrade to our premium plan.',
+              [
+                { text: 'Cancel', style: 'cancel' },
+                { text: 'Upgrade', onPress: () => router.push('/paywall') }
+              ]
+            );
+          } else {
+            // Show upgrade message instead of error
+            const upgradeMessage: Message = {
+              id: (Date.now() + 1).toString(),
+              text: "I'd love to help you with your wellness journey! To continue our conversation, please upgrade to our premium plan for unlimited access to personalized coaching.",
+              isUser: false,
+              timestamp: new Date(),
+            };
+            setMessages(prev => [...prev, upgradeMessage]);
+            
+            // Show upgrade alert
+            Alert.alert(
+              'Upgrade Required',
+              'To continue chatting with your AI wellness coach, please upgrade to our premium plan.',
+              [
+                { text: 'Cancel', style: 'cancel' },
+                { text: 'Upgrade', onPress: () => router.push('/paywall') }
+              ]
+            );
+          }
         }
       } catch (error) {
         console.error('Send message error:', error);
-        const errorMessage: Message = {
+        // Show upgrade message instead of error
+        const upgradeMessage: Message = {
           id: (Date.now() + 1).toString(),
-          text: 'Sorry, I encountered an error. Please try again.',
+          text: "I'd love to help you with your wellness journey! To continue our conversation, please upgrade to our premium plan for unlimited access to personalized coaching.",
           isUser: false,
           timestamp: new Date(),
         };
-        setMessages(prev => [...prev, errorMessage]);
+        setMessages(prev => [...prev, upgradeMessage]);
+        
+        // Show upgrade alert
+        Alert.alert(
+          'Upgrade Required',
+          'To continue chatting with your AI wellness coach, please upgrade to our premium plan.',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'Upgrade', onPress: () => router.push('/paywall') }
+          ]
+        );
       } finally {
         setIsLoading(false);
       }
@@ -300,78 +358,7 @@ export default function ChatScreen() {
               </View>
             )}
           </View>
-          <View style={styles.headerButtons}>
-            <TouchableOpacity 
-              style={styles.testButton}
-              onPress={async () => {
-                console.log('Testing AI Chat Service...');
-                const result = await aiChatService.simpleTest();
-                console.log('Test result:', result);
-                Alert.alert('Test Result', result ? '✅ Backend is reachable!' : '❌ Backend is not reachable. Check console for details.');
-              }}
-            >
-              <Text style={styles.testButtonText}>Test</Text>
-            </TouchableOpacity>
-          <TouchableOpacity 
-            style={styles.chatToggle}
-            onPress={() => setShowHistory(!showHistory)}
-          >
-            <Text style={styles.chatToggleText}>
-              {showHistory ? 'Hide History' : 'History'}
-            </Text>
-          </TouchableOpacity>
-            <TouchableOpacity 
-              style={styles.newChatButton}
-              onPress={async () => {
-                const newConversationId = await createNewConversation();
-                if (newConversationId) {
-                  setMessages([{
-                    id: '1',
-                    text: "Hello! I'm here to help you with your wellness journey. What would you like to work on today?",
-                    isUser: false,
-                    timestamp: new Date(),
-                  }]);
-                  Alert.alert('New Chat', 'Started a new conversation!');
-                }
-              }}
-            >
-              <Text style={styles.newChatButtonText}>New Chat</Text>
-            </TouchableOpacity>
-            <TouchableOpacity 
-              style={styles.resetButton}
-              onPress={async () => {
-                await freeTrialService.clearFreeTrialData();
-                const status = await freeTrialService.getFreeTrialStatus();
-                setFreeTrialStatus(status);
-                Alert.alert('Reset', 'Free trial data cleared for testing!');
-              }}
-            >
-              <Text style={styles.resetButtonText}>Reset Trial</Text>
-            </TouchableOpacity>
-            <TouchableOpacity 
-              style={styles.debugButton}
-              onPress={async () => {
-                await aiChatService.debugAPI();
-                Alert.alert('Debug', 'Check console for API debug info!');
-              }}
-            >
-              <Text style={styles.debugButtonText}>Debug API</Text>
-            </TouchableOpacity>
-            <TouchableOpacity 
-              style={styles.testMessageButton}
-              onPress={async () => {
-                console.log('Testing message sending...');
-                const response = await aiChatService.sendMessage({
-                  message: 'Hello, this is a test message!',
-                  conversation_id: undefined,
-                });
-                console.log('Test message response:', response);
-                Alert.alert('Test Message', `Response: ${JSON.stringify(response, null, 2)}`);
-              }}
-            >
-              <Text style={styles.testMessageButtonText}>Test Message</Text>
-            </TouchableOpacity>
-          </View>
+
         </View>
         
         <ScrollView 
@@ -491,70 +478,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 10,
   },
-  testButton: {
-    backgroundColor: '#2E2C58',
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#E0C68B',
-  },
-  testButtonText: {
-    color: '#E0C68B',
-    fontSize: 12,
-    fontWeight: 'bold',
-  },
-  newChatButton: {
-    backgroundColor: '#E0C68B',
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-  },
-  newChatButtonText: {
-    color: '#2E2C58',
-    fontSize: 12,
-    fontWeight: 'bold',
-  },
-  resetButton: {
-    backgroundColor: '#C4B8DD',
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-  },
-  resetButtonText: {
-    color: '#2E2C58',
-    fontSize: 12,
-    fontWeight: 'bold',
-  },
-  debugButton: {
-    backgroundColor: '#E0C68B',
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-  },
-  debugButtonText: {
-    color: '#2E2C58',
-    fontSize: 12,
-    fontWeight: 'bold',
-  },
-  testMessageButton: {
-    backgroundColor: '#C4B8DD',
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-  },
-  testMessageButtonText: {
-    color: '#2E2C58',
-    fontSize: 12,
-    fontWeight: 'bold',
-  },
-  chatToggle: {
-    padding: 8,
-  },
-  chatToggleText: {
-    color: '#C4B8DD',
-    fontSize: 14,
-  },
+
   chatMessages: {
     flex: 1,
     paddingHorizontal: 20,

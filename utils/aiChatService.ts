@@ -1,4 +1,4 @@
-import { STRIPE_CONFIG } from './stripeConfig';
+import { STRIPE_SIMPLE_CONFIG } from './stripeSimpleConfig';
 import { authService } from './authService';
 
 export interface ChatMessage {
@@ -22,6 +22,7 @@ export interface ChatResponse {
   message?: string;
   conversation_id?: string;
   error?: string;
+  upgradeMessage?: string;
 }
 
 export interface SendMessageRequest {
@@ -39,7 +40,7 @@ class AIChatService {
   private isDevelopmentMode: boolean = false;
 
   constructor() {
-    this.baseUrl = STRIPE_CONFIG.baseUrl;
+    this.baseUrl = STRIPE_SIMPLE_CONFIG.backendUrl;
     console.log('AI Chat Service initialized with base URL:', this.baseUrl);
   }
 
@@ -157,7 +158,22 @@ class AIChatService {
           })
         });
         console.error(`HTTP ${response.status} Error: ${response.statusText}`);
-        throw new Error(data.message || data.error || `HTTP ${response.status}: Failed to send message`);
+        
+        // Check for specific error messages that should trigger upgrade flow
+        const errorMessage = data.message || data.error || `HTTP ${response.status}: Failed to send message`;
+        
+        if (errorMessage.includes('Daily message limit reached') || 
+            errorMessage.includes('limit reached') ||
+            errorMessage.includes('subscription') ||
+            errorMessage.includes('upgrade')) {
+          return {
+            success: false,
+            error: 'UPGRADE_REQUIRED',
+            upgradeMessage: data.upgrade_message || 'To continue chatting with your AI wellness coach, please upgrade to our premium plan.',
+          };
+        }
+        
+        throw new Error(errorMessage);
       }
 
       return {

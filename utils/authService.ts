@@ -1,4 +1,4 @@
-import { STRIPE_CONFIG } from './stripeConfig';
+import { STRIPE_SIMPLE_CONFIG } from './stripeSimpleConfig';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export interface UserData {
@@ -32,7 +32,7 @@ export const authService = {
     main_goal: string;
   }): Promise<AuthResponse> {
     try {
-      const response = await fetch(`${STRIPE_CONFIG.baseUrl}/api/users/signup`, {
+      const response = await fetch(`${STRIPE_SIMPLE_CONFIG.backendUrl}/api/users/signup`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -76,7 +76,7 @@ export const authService = {
 
   async login(email: string, password: string): Promise<AuthResponse> {
     try {
-      const response = await fetch(`${STRIPE_CONFIG.baseUrl}/api/users/login`, {
+      const response = await fetch(`${STRIPE_SIMPLE_CONFIG.backendUrl}/api/users/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -128,7 +128,7 @@ export const authService = {
 
       console.log('Attempting token refresh...');
       
-      const response = await fetch(`${STRIPE_CONFIG.baseUrl}/api/users/refresh-token`, {
+      const response = await fetch(`${STRIPE_SIMPLE_CONFIG.backendUrl}/api/users/refresh-token`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -156,15 +156,15 @@ export const authService = {
       }
 
       // Update stored tokens
-      await AsyncStorage.setItem('accessToken', data.data.access_token);
-      await AsyncStorage.setItem('refreshToken', data.data.refresh_token);
+      await AsyncStorage.setItem('accessToken', data.data.data.accessToken);
+      await AsyncStorage.setItem('refreshToken', data.data.data.refreshToken);
       
       console.log('Token refresh successful');
       
       return {
         success: true,
-        accessToken: data.data.access_token,
-        refreshToken: data.data.refresh_token
+        accessToken: data.data.data.accessToken,
+        refreshToken: data.data.data.refreshToken
       };
     } catch (error) {
       console.error('Token refresh error:', error);
@@ -183,7 +183,7 @@ export const authService = {
         throw new Error('No access token available');
       }
 
-      const response = await fetch(`${STRIPE_CONFIG.baseUrl}/api/users/profile`, {
+      const response = await fetch(`${STRIPE_SIMPLE_CONFIG.backendUrl}/api/users/profile`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${accessToken}`
@@ -225,7 +225,7 @@ export const authService = {
         throw new Error('No access token available');
       }
 
-      const response = await fetch(`${STRIPE_CONFIG.baseUrl}/api/users/profile`, {
+      const response = await fetch(`${STRIPE_SIMPLE_CONFIG.backendUrl}/api/users/profile`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${accessToken}`,
@@ -278,8 +278,26 @@ export const authService = {
 
   async getAccessToken(): Promise<string | null> {
     try {
-      return await AsyncStorage.getItem('accessToken');
+      const token = await AsyncStorage.getItem('accessToken');
+      console.log('getAccessToken called, token present:', !!token);
+      
+      if (token) {
+        try {
+          const payload = JSON.parse(atob(token.split('.')[1]));
+          const currentTime = Math.floor(Date.now() / 1000);
+          const expiresIn = payload.exp - currentTime;
+          console.log('Token expires in:', expiresIn, 'seconds');
+          if (expiresIn < 0) {
+            console.log('Token is expired!');
+          }
+        } catch (error) {
+          console.log('Could not decode token:', error);
+        }
+      }
+      
+      return token;
     } catch (error) {
+      console.log('getAccessToken error:', error);
       return null;
     }
   },
@@ -296,6 +314,7 @@ export const authService = {
   async isAuthenticated(): Promise<boolean> {
     try {
       const token = await AsyncStorage.getItem('accessToken');
+      console.log('isAuthenticated called, token present:', !!token);
       if (!token) return false;
       
       // Basic token validation (check if it's expired)
@@ -313,7 +332,23 @@ export const authService = {
         return false;
       }
     } catch (error) {
+      console.log('isAuthenticated error:', error);
       return false;
     }
+  },
+
+  async checkAndRefreshAuth(): Promise<boolean> {
+    console.log('Checking authentication state...');
+    const isAuth = await this.isAuthenticated();
+    console.log('Current auth state:', isAuth);
+    
+    if (!isAuth) {
+      console.log('Not authenticated, attempting token refresh...');
+      const refreshResult = await this.refreshToken();
+      console.log('Token refresh result:', refreshResult.success);
+      return refreshResult.success;
+    }
+    
+    return true;
   }
 }; 

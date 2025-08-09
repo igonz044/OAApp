@@ -9,13 +9,15 @@ import {
     TouchableOpacity,
     View,
     Dimensions,
+    Linking,
 } from 'react-native';
 import { usePayment } from '../utils/paymentContext';
 import { useAuth } from '../utils/authContext';
 import { freeTrialService } from '../utils/freeTrialService';
+import { simplePaymentService } from '../utils/simplePaymentService';
 
 export default function PaywallScreen() {
-  const [selectedTier, setSelectedTier] = useState<string | null>(null);
+  const [selectedTier, setSelectedTier] = useState<string>('starter'); // Auto-select the only plan
   const { subscriptionStatus } = usePayment();
   const { isAuthenticated, user } = useAuth();
 
@@ -26,7 +28,7 @@ export default function PaywallScreen() {
     }
   }, [isAuthenticated]);
 
-  const handleSubscribe = () => {
+  const handleSubscribe = async () => {
     console.log('handleSubscribe called, selectedTier:', selectedTier);
     
     if (!selectedTier) {
@@ -40,21 +42,42 @@ export default function PaywallScreen() {
       return;
     }
 
-    console.log('Navigating to payment checkout with:', {
+    console.log('Creating subscription for:', {
       tierId: selectedTier,
       tierName: selectedTierData.name,
       price: selectedTierData.price,
     });
 
-    // Navigate to payment checkout with tier details
-    router.push({
-      pathname: '/payment-checkout',
-      params: {
-        tierId: selectedTier,
-        tierName: selectedTierData.name,
-        price: selectedTierData.price,
-      },
-    });
+    try {
+      // Create subscription using simple payment service
+      const subscription = await simplePaymentService.createSubscription(selectedTierData.priceId);
+      
+      // Check if we got a checkout URL (for real Stripe flow)
+      if (subscription.checkoutUrl) {
+        // Open Stripe checkout in browser
+        const supported = await Linking.canOpenURL(subscription.checkoutUrl);
+        if (supported) {
+          await Linking.openURL(subscription.checkoutUrl);
+        } else {
+          Alert.alert('Error', 'Cannot open payment page. Please try again.');
+        }
+      } else {
+        // Mock subscription (test mode)
+        Alert.alert(
+          'Subscription Created!',
+          `Welcome to ${selectedTierData.name}! Your subscription is now active.`,
+          [
+            {
+              text: 'Continue',
+              onPress: () => router.replace('/(tabs)'),
+            },
+          ]
+        );
+      }
+    } catch (error) {
+      console.error('Error creating subscription:', error);
+      Alert.alert('Error', 'Failed to create subscription. Please try again.');
+    }
   };
 
   const handleSkip = async () => {
@@ -71,46 +94,31 @@ export default function PaywallScreen() {
     }
   };
 
+  const handleTestBackend = async () => {
+    try {
+      // Test the simple payment service
+      const testCards = simplePaymentService.getTestCards();
+      console.log('Test cards available:', testCards);
+      Alert.alert('Test Complete', 'Check console for test card information');
+    } catch (error) {
+      console.error('Test error:', error);
+      Alert.alert('Test Error', 'Failed to test payment service.');
+    }
+  };
+
   const tiers = [
     {
-      id: 'tier1',
+      id: 'starter',
       name: 'Starter',
       price: '$9.99',
+      priceId: 'price_1RljHBQF5FabzjVCXAjMtMZZ', // Your Stripe price ID
       period: 'month',
       features: [
         'Limited coaching chats per week',
         'Basic text-based responses',
         'Core goal tracking',
       ],
-      popular: false,
-    },
-    {
-      id: 'tier2',
-      name: 'Premium',
-      price: '$19.99',
-      period: 'month',
-      features: [
-        'Unlimited chats',
-        'Goal tracking & analytics',
-        'Basic voice notes',
-        'Priority support',
-        'All Starter Features',
-      ],
       popular: true,
-    },
-    {
-      id: 'tier3',
-      name: 'Elite',
-      price: '$49.99',
-      period: 'month',
-      features: [
-        'Calls from Eleven Labs API',
-        'Advanced goal customization',
-        'Journaling prompts',
-        'AI Generated Wellness Reports',
-        'All Premium Features',
-      ],
-      popular: false,
     },
   ];
 
@@ -155,59 +163,33 @@ export default function PaywallScreen() {
           </View>
           
           <View style={styles.content}>
-            <Text style={styles.title}>Subscription Tiers</Text>
+            <Text style={styles.title}>Starter Plan</Text>
             <Text style={styles.description}>
-              Choose the plan that fits your wellness goals and unlock your potential.
+              Get started with basic coaching features for just $9.99/month.
             </Text>
             
-            {/* Paid Plans - Responsive layout */}
-            <View style={styles.paidPlansContainer}>
-              {tiers.map((tier) => (
-                <TouchableOpacity
-                  key={tier.id}
-                  style={[
-                    styles.paidPlanCard,
-                    selectedTier === tier.id && styles.selectedCard,
-                    tier.popular && styles.popularCard,
-                  ]}
-                  onPress={() => setSelectedTier(tier.id)}
-                >
-                  {tier.popular && (
-                    <View style={styles.popularBadge}>
-                      <Text style={styles.popularText}>Most Popular</Text>
-                    </View>
-                  )}
-                  
-                  <View style={styles.tierHeader}>
-                    <Text style={styles.tierName}>{tier.name}</Text>
-                    <View style={styles.priceContainer}>
-                      <Text style={styles.price}>{tier.price}</Text>
-                      <Text style={styles.period}>/{tier.period}</Text>
-                    </View>
-                  </View>
-              
-              <View style={styles.features}>
-                    {tier.features.map((feature, index) => (
-                      <View key={index} style={styles.featureItem}>
-                  <Text style={styles.checkmark}>✓</Text>
-                        <Text style={styles.featureText}>{feature}</Text>
-                </View>
-                    ))}
+            {/* Single Plan Card */}
+            <View style={styles.singlePlanCard}>
+              <View style={styles.popularBadge}>
+                <Text style={styles.popularText}>Most Popular</Text>
               </View>
               
-                  <TouchableOpacity 
-                    style={[
-                      styles.btnPrimary,
-                      selectedTier === tier.id && styles.btnPrimarySelected
-                    ]} 
-                    onPress={() => setSelectedTier(tier.id)}
-                  >
-                    <Text style={styles.btnPrimaryText}>
-                      {selectedTier === tier.id ? 'Selected' : 'Choose Plan'}
-                    </Text>
-                  </TouchableOpacity>
-              </TouchableOpacity>
-              ))}
+              <View style={styles.tierHeader}>
+                <Text style={styles.tierName}>{tiers[0].name}</Text>
+                <View style={styles.priceContainer}>
+                  <Text style={styles.price}>{tiers[0].price}</Text>
+                  <Text style={styles.period}>/{tiers[0].period}</Text>
+                </View>
+              </View>
+              
+              <View style={styles.features}>
+                {tiers[0].features.map((feature, index) => (
+                  <View key={index} style={styles.featureItem}>
+                    <Text style={styles.checkmark}>✓</Text>
+                    <Text style={styles.featureText}>{feature}</Text>
+                  </View>
+                ))}
+              </View>
             </View>
             
             {/* Start Free Trial Button */}
@@ -215,14 +197,17 @@ export default function PaywallScreen() {
               <Text style={styles.btnFreeTrialText}>Start Free Trial</Text>
             </TouchableOpacity>
             
-            {/* Subscribe Button for selected paid plan */}
-            {selectedTier && (
-              <TouchableOpacity style={styles.btnSubscribe} onPress={handleSubscribe}>
-                <Text style={styles.btnSubscribeText}>
-                  Subscribe to {tiers.find(t => t.id === selectedTier)?.name} Plan
-                </Text>
-              </TouchableOpacity>
-            )}
+            {/* Subscribe Button */}
+            <TouchableOpacity style={styles.btnSubscribe} onPress={handleSubscribe}>
+              <Text style={styles.btnSubscribeText}>
+                Subscribe to Starter Plan - $9.99/month
+              </Text>
+            </TouchableOpacity>
+            
+            {/* Test Backend Button */}
+            <TouchableOpacity style={styles.btnTestBackend} onPress={handleTestBackend}>
+              <Text style={styles.btnTestBackendText}>Test Backend Subscription</Text>
+            </TouchableOpacity>
           </View>
         </View>
       </ScrollView>
@@ -347,12 +332,16 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#2E2C58',
   },
-  paidPlansContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    width: '100%',
+  singlePlanCard: {
+    backgroundColor: 'rgba(169, 195, 177, 0.1)',
+    borderRadius: 16,
+    padding: 20,
     marginBottom: 30,
-    gap: isSmallScreen ? 8 : 0,
+    borderWidth: 2,
+    borderColor: '#A9C3B1',
+    width: '100%',
+    position: 'relative',
+    alignItems: 'center',
   },
   paidPlanCard: {
     backgroundColor: 'rgba(196, 184, 221, 0.1)',
@@ -495,5 +484,18 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     color: '#2E2C58',
+  },
+  btnTestBackend: {
+    width: '100%',
+    padding: 12,
+    borderRadius: 8,
+    backgroundColor: '#FF6B6B',
+    alignItems: 'center',
+    marginTop: 10,
+  },
+  btnTestBackendText: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
   },
 }); 

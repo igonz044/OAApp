@@ -12,7 +12,7 @@ npm install @stripe/stripe-react-native
 
 ### 2. Configure Stripe Keys
 
-Update the `utils/stripeConfig.ts` file with your actual Stripe credentials:
+Update the `utils/stripeSimpleConfig.ts` file with your actual Stripe credentials:
 
 ```typescript
 export const STRIPE_CONFIG = {

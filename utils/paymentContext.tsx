@@ -1,5 +1,13 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { paymentService, SubscriptionStatus } from './paymentService';
+import { simplePaymentService } from './simplePaymentService';
+
+// Simple subscription status interface
+interface SubscriptionStatus {
+  isActive: boolean;
+  tier: string;
+  status: string;
+  currentPeriodEnd: number;
+}
 
 interface PaymentContextType {
   subscriptionStatus: SubscriptionStatus | null;
@@ -35,15 +43,21 @@ export const PaymentProvider: React.FC<PaymentProviderProps> = ({ children }) =>
       setIsLoading(true);
       setError(null);
       
-      // Check if we're in development mode
-      const devMode = paymentService.isDevMode();
-      setIsDevMode(devMode);
+      // Check if we're in test mode
+      const testMode = simplePaymentService.isTestMode();
+      setIsDevMode(testMode);
       
-      if (devMode) {
-        console.log('Running in development mode - using mock data');
+      if (testMode) {
+        console.log('Running in test mode - using mock data');
       }
       
-      const status = await paymentService.getSubscriptionStatus();
+      // For now, return a default status since we're using the simple service
+      const status: SubscriptionStatus = {
+        isActive: false,
+        tier: '',
+        status: 'inactive',
+        currentPeriodEnd: 0,
+      };
       setSubscriptionStatus(status);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to load subscription status';

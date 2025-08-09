@@ -251,6 +251,7 @@ const styles = StyleSheet.create({
     color: '#E0C68B',
     fontSize: 18,
     fontWeight: 'bold',
+    marginBottom: 10,
   },
   sectionHeader: {
     flexDirection: 'row',

@@ -26,6 +26,15 @@ export default function SettingsScreen() {
       Linking.openURL(privacyUrl).catch((err) => {
         Alert.alert('Error', 'Unable to open Privacy Policy');
       });
+    } else if (setting === 'Help & Support') {
+      const supportEmail = 'ousauris@gmail.com';
+      const subject = 'OusAuris App Support';
+      const body = 'Hello,\n\nI need help with the OusAuris app.\n\n[Please describe your issue here]';
+      const mailtoUrl = `mailto:${supportEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+      
+      Linking.openURL(mailtoUrl).catch((err) => {
+        Alert.alert('Error', 'Unable to open email app. Please email us at ousauris@gmail.com');
+      });
     } else {
       Alert.alert('Coming Soon', `${setting} will be available soon`);
     }
