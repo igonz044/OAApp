@@ -93,6 +93,8 @@ export const authService = {
       }
       
       const data = await response.json();
+      
+      console.log('🔐 LOGIN API RESPONSE:', JSON.stringify(data, null, 2));
 
       if (!response.ok) {
         throw new Error(data.message || 'Login failed');
@@ -156,15 +158,15 @@ export const authService = {
       }
 
       // Update stored tokens
-      await AsyncStorage.setItem('accessToken', data.data.data.accessToken);
-      await AsyncStorage.setItem('refreshToken', data.data.data.refreshToken);
+      await AsyncStorage.setItem('accessToken', data.data.accessToken);
+      await AsyncStorage.setItem('refreshToken', data.data.refreshToken);
       
       console.log('Token refresh successful');
       
       return {
         success: true,
-        accessToken: data.data.data.accessToken,
-        refreshToken: data.data.data.refreshToken
+        accessToken: data.data.accessToken,
+        refreshToken: data.data.refreshToken
       };
     } catch (error) {
       console.error('Token refresh error:', error);

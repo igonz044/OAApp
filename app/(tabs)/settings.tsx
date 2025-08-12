@@ -13,6 +13,7 @@ import {
 import { usePayment } from '../../utils/paymentContext';
 import { useAuth } from '../../utils/authContext';
 import { notificationService } from '../../utils/notificationService';
+import { simplePaymentService } from '../../utils/simplePaymentService';
 
 export default function SettingsScreen() {
   const { subscriptionStatus, isLoading } = usePayment();
@@ -40,23 +41,35 @@ export default function SettingsScreen() {
     }
   };
 
-  const handleSubscriptionPress = () => {
+  const handleSubscriptionPress = async () => {
     if (subscriptionStatus?.isActive) {
-      // Show subscription details
-      Alert.alert(
-        'Subscription Details',
-        `Plan: ${subscriptionStatus.tier}\nStatus: ${subscriptionStatus.status}\nRenews: ${new Date(subscriptionStatus.currentPeriodEnd * 1000).toLocaleDateString()}`,
-        [
-          { text: 'Cancel', style: 'cancel' },
-          { 
-            text: 'Manage Subscription', 
-            onPress: () => {
-              // Navigate to subscription management
-              Alert.alert('Coming Soon', 'Subscription management will be available soon');
+      try {
+        // Get subscription details from API
+        const subscriptionDetails = await simplePaymentService.getSubscriptionDetails();
+        const usageStats = await simplePaymentService.getUsageStatistics();
+        
+        Alert.alert(
+          'Subscription Details',
+          `Plan: ${subscriptionDetails.data?.tier || subscriptionStatus.tier}\nStatus: ${subscriptionDetails.data?.status || subscriptionStatus.status}\nRenews: ${new Date((subscriptionDetails.data?.currentPeriodEnd || subscriptionStatus.currentPeriodEnd) * 1000).toLocaleDateString()}\n\nUsage:\nSessions: ${usageStats.data?.totalSessions || 0}\nChats: ${usageStats.data?.totalChats || 0}`,
+          [
+            { text: 'Cancel', style: 'cancel' },
+            { 
+              text: 'Reactivate', 
+              onPress: async () => {
+                try {
+                  await simplePaymentService.reactivateSubscription();
+                  Alert.alert('Success', 'Subscription reactivated successfully!');
+                } catch (error) {
+                  Alert.alert('Error', 'Failed to reactivate subscription');
+                }
+              }
             }
-          }
-        ]
-      );
+          ]
+        );
+      } catch (error) {
+        console.error('Error getting subscription details:', error);
+        Alert.alert('Error', 'Failed to load subscription details');
+      }
     } else {
       // Navigate to paywall
       router.push('/paywall');

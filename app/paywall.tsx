@@ -183,12 +183,16 @@ export default function PaywallScreen() {
               </View>
               
               <View style={styles.features}>
-                {tiers[0].features.map((feature, index) => (
-                  <View key={index} style={styles.featureItem}>
-                    <Text style={styles.checkmark}>✓</Text>
-                    <Text style={styles.featureText}>{feature}</Text>
-                  </View>
-                ))}
+                {tiers[0].features && tiers[0].features.length > 0 ? (
+                  tiers[0].features.map((feature, index) => (
+                    <View key={index} style={styles.featureItem}>
+                      <Text style={styles.checkmark}>✓</Text>
+                      <Text style={styles.featureText}>{feature}</Text>
+                    </View>
+                  ))
+                ) : (
+                  <Text style={styles.featureText}>No features available</Text>
+                )}
               </View>
             </View>
             
@@ -200,7 +204,7 @@ export default function PaywallScreen() {
             {/* Subscribe Button */}
             <TouchableOpacity style={styles.btnSubscribe} onPress={handleSubscribe}>
               <Text style={styles.btnSubscribeText}>
-                Subscribe to Starter Plan - $9.99/month
+                Subscribe
               </Text>
             </TouchableOpacity>
             
@@ -333,15 +337,24 @@ const styles = StyleSheet.create({
     color: '#2E2C58',
   },
   singlePlanCard: {
-    backgroundColor: 'rgba(169, 195, 177, 0.1)',
-    borderRadius: 16,
-    padding: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 20,
+    padding: 24,
     marginBottom: 30,
-    borderWidth: 2,
-    borderColor: '#A9C3B1',
-    width: '100%',
+    borderWidth: 1,
+    borderColor: 'rgba(169, 195, 177, 0.3)',
+    width: '85%',
+    maxWidth: 320,
     position: 'relative',
     alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 8,
+    },
+    shadowOpacity: 0.15,
+    shadowRadius: 20,
+    elevation: 8,
   },
   paidPlanCard: {
     backgroundColor: 'rgba(196, 184, 221, 0.1)',
@@ -363,66 +376,83 @@ const styles = StyleSheet.create({
   },
   popularBadge: {
     position: 'absolute',
-    top: isSmallScreen ? -8 : -10,
-    right: isSmallScreen ? (isVerySmallScreen ? 8 : 12) : 10,
-    backgroundColor: '#A9C3B1',
-    paddingHorizontal: isSmallScreen ? (isVerySmallScreen ? 6 : 8) : 8,
-    paddingVertical: isSmallScreen ? 3 : 4,
-    borderRadius: isSmallScreen ? 8 : 12,
+    top: isSmallScreen ? -10 : -12,
+    right: isSmallScreen ? (isVerySmallScreen ? 12 : 16) : 16,
+    backgroundColor: '#E0C68B',
+    paddingHorizontal: isSmallScreen ? (isVerySmallScreen ? 8 : 12) : 12,
+    paddingVertical: isSmallScreen ? 4 : 6,
+    borderRadius: isSmallScreen ? 12 : 16,
     zIndex: 1,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
   popularText: {
     color: '#2E2C58',
-    fontSize: isSmallScreen ? (isVerySmallScreen ? 8 : 9) : 10,
-    fontWeight: 'bold',
+    fontSize: isSmallScreen ? (isVerySmallScreen ? 9 : 10) : 11,
+    fontWeight: '700',
+    letterSpacing: 0.5,
   },
   tierHeader: {
     alignItems: 'center',
-    marginBottom: isSmallScreen ? (isVerySmallScreen ? 10 : 12) : 15,
+    marginBottom: isSmallScreen ? (isVerySmallScreen ? 16 : 20) : 24,
   },
   tierName: {
-    fontSize: isSmallScreen ? (isVerySmallScreen ? 14 : 16) : 18,
-    fontWeight: 'bold',
+    fontSize: isSmallScreen ? (isVerySmallScreen ? 16 : 18) : 20,
+    fontWeight: '700',
     color: '#E0C68B',
-    marginBottom: isSmallScreen ? 3 : 5,
+    marginBottom: isSmallScreen ? 6 : 8,
     textAlign: 'center',
+    letterSpacing: 0.5,
   },
   priceContainer: {
     flexDirection: 'row',
     alignItems: 'baseline',
   },
   price: {
-    fontSize: isSmallScreen ? (isVerySmallScreen ? 18 : 20) : 24,
-    fontWeight: 'bold',
+    fontSize: isSmallScreen ? (isVerySmallScreen ? 20 : 24) : 28,
+    fontWeight: '700',
     color: '#E0C68B',
+    letterSpacing: 0.5,
   },
   period: {
-    fontSize: isSmallScreen ? (isVerySmallScreen ? 10 : 12) : 14,
+    fontSize: isSmallScreen ? (isVerySmallScreen ? 12 : 14) : 16,
     color: '#C4B8DD',
-    marginLeft: 2,
+    marginLeft: 4,
+    fontWeight: '500',
   },
   features: {
-    marginBottom: isSmallScreen ? (isVerySmallScreen ? 10 : 12) : 15,
-    flex: isSmallScreen ? 0 : 1,
+    marginBottom: isSmallScreen ? (isVerySmallScreen ? 16 : 20) : 24,
+    width: '100%',
+    alignItems: 'center',
   },
   featureItem: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
-    paddingVertical: isSmallScreen ? (isVerySmallScreen ? 3 : 4) : 4,
-    marginBottom: isSmallScreen ? (isVerySmallScreen ? 6 : 8) : 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: isSmallScreen ? (isVerySmallScreen ? 4 : 6) : 8,
+    marginBottom: isSmallScreen ? (isVerySmallScreen ? 8 : 10) : 12,
+    width: '100%',
   },
   checkmark: {
     color: '#A9C3B1',
-    fontWeight: 'bold',
-    marginRight: isSmallScreen ? 6 : 8,
-    fontSize: isSmallScreen ? (isVerySmallScreen ? 9 : 10) : 12,
-    marginTop: 2,
+    fontWeight: '700',
+    marginRight: isSmallScreen ? 8 : 10,
+    fontSize: isSmallScreen ? (isVerySmallScreen ? 12 : 14) : 16,
+    marginTop: 0,
   },
   featureText: {
     color: '#C4B8DD',
-    fontSize: isSmallScreen ? (isVerySmallScreen ? 9 : 10) : 12,
+    fontSize: isSmallScreen ? (isVerySmallScreen ? 12 : 14) : 16,
     flex: 1,
-    lineHeight: isSmallScreen ? (isVerySmallScreen ? 12 : 14) : 16,
+    lineHeight: isSmallScreen ? (isVerySmallScreen ? 16 : 18) : 20,
+    fontWeight: '500',
+    textAlign: 'left',
   },
   btnPrimary: {
     width: '100%',
@@ -442,48 +472,52 @@ const styles = StyleSheet.create({
     color: '#E0C68B',
   },
   btnFreeTrial: {
-    width: '100%',
-    padding: 16,
-    borderRadius: 12,
+    width: '85%',
+    maxWidth: 320,
+    padding: 18,
+    borderRadius: 16,
     backgroundColor: '#E0C68B',
     alignItems: 'center',
-    marginBottom: 15,
+    marginBottom: 20,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
-      height: 2,
+      height: 4,
     },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 4,
     zIndex: 2,
   },
   btnFreeTrialText: {
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '700',
     color: '#2E2C58',
+    letterSpacing: 0.5,
   },
   btnSubscribe: {
-    width: '100%',
-    padding: 16,
-    borderRadius: 12,
+    width: '85%',
+    maxWidth: 320,
+    padding: 18,
+    borderRadius: 16,
     backgroundColor: '#A9C3B1',
     alignItems: 'center',
-    marginBottom: 15,
+    marginBottom: 20,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
-      height: 2,
+      height: 4,
     },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 4,
     zIndex: 2,
   },
   btnSubscribeText: {
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '700',
     color: '#2E2C58',
+    letterSpacing: 0.5,
   },
   btnTestBackend: {
     width: '100%',

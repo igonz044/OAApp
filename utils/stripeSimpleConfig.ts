@@ -33,7 +33,8 @@ export const TEST_CARDS = {
 
 // 4. Simple API Endpoints (we'll build these)
 export const SIMPLE_API_ENDPOINTS = {
-  createPaymentIntent: '/api/payment-intents/create',
   createSubscription: '/api/subscriptions/create',
-  confirmPayment: '/api/payments/confirm',
+  getSubscriptionDetails: '/api/subscriptions/details',
+  reactivateSubscription: '/api/subscriptions/reactivate',
+  getUsageStatistics: '/api/subscriptions/usage',
 };
