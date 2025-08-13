@@ -51,18 +51,22 @@ export default function PaywallScreen() {
     try {
       // Create subscription using simple payment service
       const subscription = await simplePaymentService.createSubscription(selectedTierData.priceId);
-      
+      console.log('🔐🔐🔐🔐🔐 subscription is: ', subscription);
+      console.log('🩷🩷🩷 subscription.checkout is: ', subscription.data.checkout_url);
+
       // Check if we got a checkout URL (for real Stripe flow)
-      if (subscription.checkoutUrl) {
+      if (subscription.data.checkout_url) {
         // Open Stripe checkout in browser
-        const supported = await Linking.canOpenURL(subscription.checkoutUrl);
+        console.log('🔗🔗🔗🔗 Redirecting');
+        const supported = await Linking.canOpenURL(subscription.data.checkout_url);
         if (supported) {
-          await Linking.openURL(subscription.checkoutUrl);
+          await Linking.openURL(subscription.data.checkout_url);
         } else {
           Alert.alert('Error', 'Cannot open payment page. Please try again.');
         }
       } else {
         // Mock subscription (test mode)
+        console.log('🔗alert');
         Alert.alert(
           'Subscription Created!',
           `Welcome to ${selectedTierData.name}! Your subscription is now active.`,

@@ -24,6 +24,8 @@ export class SimplePaymentService {
       const accessToken = await AsyncStorage.getItem('accessToken');
       if (!accessToken) {
         throw new Error('No access token available');
+      }else{
+        console.log('🔐accessToken is: ', accessToken);
       }
       
       const response = await fetch(`${this.baseUrl}${SIMPLE_API_ENDPOINTS.createSubscription}`, {
