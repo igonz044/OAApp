@@ -21,8 +21,6 @@ export default function SubscriptionSuccessScreen() {
 
   // Log when success screen loads
   useEffect(() => {
-    console.log('🎉 SUBSCRIPTION SUCCESS SCREEN LOADED');
-    console.log('📊 Current subscription status:', subscriptionStatus);
   }, []);
 
   useEffect(() => {
@@ -42,16 +40,14 @@ export default function SubscriptionSuccessScreen() {
     ]).start();
 
     // Auto-navigate after 3 seconds
-    const timer = setTimeout(() => {
-      console.log('⏰ Auto-navigating to main app after 3 seconds');
-      router.replace('/(tabs)');
-    }, 3000);
+            const timer = setTimeout(() => {
+          router.replace('/(tabs)');
+        }, 3000);
 
     return () => clearTimeout(timer);
   }, []);
 
   const handleContinue = () => {
-    console.log('👆 User clicked continue button');
     router.replace('/(tabs)');
   };
 

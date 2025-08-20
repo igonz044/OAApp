@@ -159,8 +159,8 @@ export default function CalendarScreen() {
     return selectedDateTime <= now;
   };
 
-  // Check if a specific time option should be disabled
-  const isTimeOptionDisabled = (hour: number, minute: number): boolean => {
+  // Check if a specific time option is in the past (for informational purposes only)
+  const isTimeInPastForInfo = (hour: number, minute: number): boolean => {
     if (!selectedDate) return false;
     
     const selectedDateObj = dateOptions.find(option => option.id === selectedDate)?.fullDate;
@@ -189,15 +189,22 @@ export default function CalendarScreen() {
     if (selectedTime.startsWith('custom_')) {
       // Handle custom time
       const [_, hour24, minute] = selectedTime.split('_');
+
+      
       selectedTimeObj = new Date(selectedDateObj!);
       selectedTimeObj.setHours(parseInt(hour24), parseInt(minute), 0, 0);
       
-      // Check if selected time is in the past
+
+      
+      // Check if selected time is in the past and show helpful notification
       if (isTimeInPast(selectedDateObj!, parseInt(hour24), parseInt(minute))) {
         Alert.alert(
-          'Cannot Book in the Past',
-          'Please select a time that is in the future. You cannot book sessions in the past.',
-          [{ text: 'OK', style: 'default' }]
+          'Session Time in the Past',
+          'The time you selected is in the past. Please choose a future time for your session.',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'Choose Different Time', style: 'default' }
+          ]
         );
         return;
       }
@@ -222,11 +229,7 @@ export default function CalendarScreen() {
         displayTime: displayTime,
       });
       
-      console.log('Updated session data:', {
-        date: dateLabel,
-        time: displayTime,
-        recurring: 'none' // All sessions are one-time only
-      });
+
     }
     
     router.push('/session-type');
@@ -305,6 +308,23 @@ export default function CalendarScreen() {
     return `${displayHour}:${customMinute.toString().padStart(2, '0')} ${displayPeriod}`;
   };
 
+  const isCurrentTimeInPast = () => {
+    if (!selectedDate) return false;
+    
+    const selectedDateObj = dateOptions.find(option => option.id === selectedDate)?.fullDate;
+    if (!selectedDateObj) return false;
+    
+    // Convert 12-hour to 24-hour for comparison
+    let hour24 = customHour;
+    if (customPeriod === 'PM' && customHour !== 12) {
+      hour24 = customHour + 12;
+    } else if (customPeriod === 'AM' && customHour === 12) {
+      hour24 = 0;
+    }
+    
+    return isTimeInPast(selectedDateObj, hour24, customMinute);
+  };
+
   // Recurring options - commented out for future implementation
   /*
   const recurringOptions = [
@@ -357,7 +377,7 @@ export default function CalendarScreen() {
         </View>
       </View>
       
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView style={[styles.content, { zIndex: 1 }]} showsVerticalScrollIndicator={false}>
         <View style={styles.section}>
           {/*<Text style={styles.sectionTitle}>Select Date</Text>*/}
           <View style={styles.calendarGrid}>
@@ -388,12 +408,22 @@ export default function CalendarScreen() {
         </View>
 
         {selectedDate && (
-          <View style={styles.section}>
+          <View style={[styles.section, { zIndex: 9996 }]}>
             {/*<Text style={styles.sectionTitle}>Select Time</Text>*/}
             
             {/* Direct Time Picker */}
             <View style={styles.directTimePicker}>
-              <Text style={styles.currentTimeDisplay}>{getCurrentTimeDisplay()}</Text>
+              <Text style={[
+                styles.currentTimeDisplay,
+                isCurrentTimeInPast() && styles.currentTimeDisplayPast
+              ]}>
+                {getCurrentTimeDisplay()}
+              </Text>
+              {isCurrentTimeInPast() && (
+                <Text style={styles.pastTimeWarning}>
+                  ⚠️ This time is in the past
+                </Text>
+              )}
               
               {/*Helpful message about past time prevention
               <Text style={styles.timeHelpText}>
@@ -421,17 +451,16 @@ export default function CalendarScreen() {
                     <View style={styles.dropdownMenu}>
                       <ScrollView style={styles.dropdownScroll} showsVerticalScrollIndicator={false}>
                         {Array.from({ length: 12 }, (_, i) => i + 1).map((hour) => {
-                          const isDisabled = isTimeOptionDisabled(hour, customMinute);
+                          const isPastTime = isTimeInPastForInfo(hour, customMinute);
                           return (
                             <TouchableOpacity
                               key={hour}
                               style={[
                                 styles.dropdownOption,
                                 customHour === hour && styles.dropdownOptionSelected,
-                                isDisabled && styles.dropdownOptionDisabled,
+                                isPastTime && styles.dropdownOptionPast,
                               ]}
                               onPress={() => {
-                                if (isDisabled) return; // Prevent selection of disabled times
                                 setCustomHour(hour);
                                 setShowHourDropdown(false);
                                 // Auto-set selected time when hour is chosen
@@ -445,12 +474,11 @@ export default function CalendarScreen() {
                                 const timeId = `custom_${hour24}_${customMinute}`;
                                 setSelectedTime(timeId);
                               }}
-                              disabled={isDisabled}
                             >
                               <Text style={[
                                 styles.dropdownOptionText,
                                 customHour === hour && styles.dropdownOptionTextSelected,
-                                isDisabled && styles.dropdownOptionTextDisabled,
+                                isPastTime && styles.dropdownOptionTextPast,
                               ]}>
                                 {hour}
                               </Text>
@@ -482,19 +510,19 @@ export default function CalendarScreen() {
                   
                   {showMinuteDropdown && (
                     <View style={styles.dropdownMenu}>
-                      <ScrollView style={styles.dropdownScroll} showsVerticalScrollIndicator={false}>
-                        {[0, 15, 30, 45].map((minute) => {
-                          const isDisabled = isTimeOptionDisabled(customHour, minute);
+                                              {[0, 15, 30, 45].map((minute, index) => {
+                          const isPastTime = isTimeInPastForInfo(customHour, minute);
+                          const isLast = index === 3; // Last item (45 minutes)
                           return (
                             <TouchableOpacity
                               key={minute}
                               style={[
                                 styles.dropdownOption,
                                 customMinute === minute && styles.dropdownOptionSelected,
-                                isDisabled && styles.dropdownOptionDisabled,
+                                isPastTime && styles.dropdownOptionPast,
+                                isLast && { borderBottomWidth: 0 }, // Remove border from last item
                               ]}
                               onPress={() => {
-                                if (isDisabled) return; // Prevent selection of disabled times
                                 setCustomMinute(minute);
                                 setShowMinuteDropdown(false);
                                 // Auto-set selected time when minute is chosen
@@ -508,19 +536,17 @@ export default function CalendarScreen() {
                                 const timeId = `custom_${hour24}_${minute}`;
                                 setSelectedTime(timeId);
                               }}
-                              disabled={isDisabled}
                             >
                               <Text style={[
                                 styles.dropdownOptionText,
                                 customMinute === minute && styles.dropdownOptionTextSelected,
-                                isDisabled && styles.dropdownOptionTextDisabled,
+                                isPastTime && styles.dropdownOptionTextPast,
                               ]}>
                                 {minute.toString().padStart(2, '0')}
                               </Text>
                             </TouchableOpacity>
                           );
                         })}
-                      </ScrollView>
                     </View>
                   )}
                 </View>
@@ -545,7 +571,7 @@ export default function CalendarScreen() {
                     <View style={styles.dropdownMenu}>
                       {['AM', 'PM'].map((period) => {
                         // Check if this period would make the time in the past
-                        const isDisabled = (() => {
+                        const isPastTime = (() => {
                           if (!selectedDate) return false;
                           const selectedDateObj = dateOptions.find(option => option.id === selectedDate)?.fullDate;
                           if (!selectedDateObj) return false;
@@ -566,10 +592,9 @@ export default function CalendarScreen() {
                             style={[
                               styles.dropdownOption,
                               customPeriod === period && styles.dropdownOptionSelected,
-                              isDisabled && styles.dropdownOptionDisabled,
+                              isPastTime && styles.dropdownOptionPast,
                             ]}
                             onPress={() => {
-                              if (isDisabled) return; // Prevent selection of disabled times
                               setCustomPeriod(period as 'AM' | 'PM');
                               setShowPeriodDropdown(false);
                               // Auto-set selected time when period is chosen
@@ -583,12 +608,11 @@ export default function CalendarScreen() {
                               const timeId = `custom_${hour24}_${customMinute}`;
                               setSelectedTime(timeId);
                             }}
-                            disabled={isDisabled}
                           >
                             <Text style={[
                               styles.dropdownOptionText,
                               customPeriod === period && styles.dropdownOptionTextSelected,
-                              isDisabled && styles.dropdownOptionTextDisabled,
+                              isPastTime && styles.dropdownOptionTextPast,
                             ]}>
                               {period}
                             </Text>
@@ -635,6 +659,7 @@ export default function CalendarScreen() {
           style={[
             styles.btnPrimary,
             (!selectedDate || !selectedTime) && styles.btnDisabled,
+            isCurrentTimeInPast() && styles.btnPastTime,
           ]}
           onPress={handleNext}
           disabled={!selectedDate || !selectedTime}
@@ -642,8 +667,9 @@ export default function CalendarScreen() {
           <Text style={[
             styles.btnPrimaryText,
             (!selectedDate || !selectedTime) && styles.btnDisabledText,
+            isCurrentTimeInPast() && styles.btnPastTimeText,
           ]}>
-            Next
+            {isCurrentTimeInPast() ? 'Try to Book (Past Time)' : 'Next'}
           </Text>
         </TouchableOpacity>
       </ScrollView>
@@ -801,6 +827,12 @@ const styles = StyleSheet.create({
   },
   btnDisabledText: {
     color: '#9CA3AF',
+  },
+  btnPastTime: {
+    backgroundColor: '#EF4444',
+  },
+  btnPastTimeText: {
+    color: '#FFFFFF',
   },
   recurringOptions: {
     flexDirection: 'row',
@@ -1077,6 +1109,16 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 20,
   },
+  currentTimeDisplayPast: {
+    color: '#EF4444',
+  },
+  pastTimeWarning: {
+    color: '#EF4444',
+    fontSize: 14,
+    textAlign: 'center',
+    marginBottom: 15,
+    fontStyle: 'italic',
+  },
   dropdownRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -1086,6 +1128,7 @@ const styles = StyleSheet.create({
     flex: 1,
     marginHorizontal: 5,
     position: 'relative',
+    zIndex: 9998,
   },
   dropdownTrigger: {
     flexDirection: 'row',
@@ -1117,29 +1160,32 @@ const styles = StyleSheet.create({
     borderColor: '#C4B8DD',
     borderRadius: 8,
     marginTop: 2,
-    zIndex: 1001,
-    maxHeight: 150,
+    zIndex: 9999,
+    maxHeight: 200,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 4,
-    elevation: 5,
+    elevation: 10,
   },
   dropdownScroll: {
-    maxHeight: 150,
+    maxHeight: 200,
   },
   dropdownOption: {
-    paddingVertical: 10,
+    paddingVertical: 12,
     paddingHorizontal: 15,
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(196, 184, 221, 0.1)',
+    minHeight: 44,
+    justifyContent: 'center',
   },
   dropdownOptionSelected: {
     backgroundColor: '#E0C68B',
   },
-  dropdownOptionDisabled: {
-    backgroundColor: 'rgba(107, 114, 128, 0.2)',
-    opacity: 0.5,
+  dropdownOptionPast: {
+    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+    borderLeftWidth: 3,
+    borderLeftColor: '#EF4444',
   },
   dropdownOptionText: {
     fontSize: 14,
@@ -1150,9 +1196,9 @@ const styles = StyleSheet.create({
     color: '#2E2C58',
     fontWeight: 'bold',
   },
-  dropdownOptionTextDisabled: {
-    color: '#6B7280',
-    opacity: 0.6,
+  dropdownOptionTextPast: {
+    color: '#EF4444',
+    fontStyle: 'italic',
   },
   timeSeparator: {
     fontSize: 20,
@@ -1190,6 +1236,7 @@ const styles = StyleSheet.create({
     padding: 20,
     borderWidth: 1,
     borderColor: 'rgba(196, 184, 221, 0.2)',
+    zIndex: 9997,
   },
   timeHelpText: {
     color: '#C4B8DD',

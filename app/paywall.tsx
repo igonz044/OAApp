@@ -30,7 +30,7 @@ export default function PaywallScreen() {
       router.replace('/');
     } else if (subscriptionStatus?.isActive) {
       // User has active subscription - redirect to main app
-      console.log('User has active subscription - redirecting to main app');
+      
       router.replace('/(tabs)');
     }
   }, [isAuthenticated, subscriptionStatus]);
@@ -38,16 +38,10 @@ export default function PaywallScreen() {
   // Monitor app state changes to detect return from Stripe
   useEffect(() => {
     const handleAppStateChange = (nextAppState: string) => {
-      console.log('🔄 App state changed:', nextAppState);
-      
       if (nextAppState === 'active' && isRedirectingToStripe) {
-        console.log('📱 App became active - user may have returned from Stripe');
-        console.log('🔍 Checking subscription status after Stripe redirect...');
-        
         // Wait a moment for Stripe webhook to process
         setTimeout(async () => {
           try {
-            console.log('🔍 Polling subscription status...');
             await checkSubscriptionStatusAfterStripe();
           } catch (error) {
             console.error('❌ Error checking subscription status after Stripe:', error);
@@ -63,33 +57,26 @@ export default function PaywallScreen() {
   // Function to check subscription status after Stripe redirect
   const checkSubscriptionStatusAfterStripe = async () => {
     try {
-      console.log('🔍 Checking subscription status after Stripe redirect...');
-      
       // Refresh subscription status
       await refreshSubscriptionStatus();
       
       // Get detailed subscription info
+      console.log('🔐 API CALL 2: Checking subscription status after Stripe redirect...');
       const subscriptionDetails = await simplePaymentService.getSubscriptionDetails();
-      console.log('📊 Subscription details after Stripe:', JSON.stringify(subscriptionDetails, null, 2));
+      console.log('🔐 API CALL 2 RESPONSE:', JSON.stringify(subscriptionDetails, null, 2));
       
       if (subscriptionDetails.data?.status === 'active') {
-        console.log('✅ Subscription is now active!');
-        console.log('🎉 User successfully completed Stripe checkout');
-        
+        console.log('✅ Subscription is now active! User successfully completed Stripe checkout');
         // Clear redirect state
         setIsRedirectingToStripe(false);
         setStripeSessionId(null);
         
         // Navigate to success screen
-        console.log('🎉 Navigating to subscription success screen');
         router.replace('/subscription-success');
       } else {
-        console.log('❌ Subscription not yet active:', subscriptionDetails.data?.status);
-        console.log('⏳ This might be normal if webhook is still processing...');
-        
+        console.log('⏳ Subscription not yet active, polling again in 3 seconds...');
         // Poll again after a delay
         setTimeout(async () => {
-          console.log('🔄 Polling again for subscription status...');
           await checkSubscriptionStatusAfterStripe();
         }, 3000); // Poll again in 3 seconds
       }
@@ -103,40 +90,29 @@ export default function PaywallScreen() {
   };
 
   const handleSubscribe = async () => {
-    console.log('handleSubscribe called, selectedTier:', selectedTier);
-    
     if (!selectedTier) {
-      console.log('No tier selected');
       return;
     }
 
     const selectedTierData = tiers.find(tier => tier.id === selectedTier);
     if (!selectedTierData) {
-      console.log('Tier data not found for:', selectedTier);
       return;
     }
 
-    console.log('Creating subscription for:', {
-      tierId: selectedTier,
-      tierName: selectedTierData.name,
-      price: selectedTierData.price,
-    });
-
     try {
       // Create subscription using simple payment service
+      console.log('🔐 API CALL 1: Creating subscription...');
       const subscription = await simplePaymentService.createSubscription(selectedTierData.priceId);
-      console.log('🔐🔐🔐🔐🔐 SUBSCRIPTION CREATION RESPONSE:', JSON.stringify(subscription, null, 2));
+      console.log('🔐 API CALL 1 RESPONSE:', JSON.stringify(subscription, null, 2));
       
       // Store session ID for tracking
       if (subscription.data?.id) {
         setStripeSessionId(subscription.data.id);
-        console.log('🔑 Stripe Session ID:', subscription.data.id);
       }
 
       // Check if we got a checkout URL (for real Stripe flow)
       if (subscription.data?.checkout_url) {
-        console.log('🔗🔗🔗🔗 REDIRECTING TO STRIPE CHECKOUT');
-        console.log('🔗 Checkout URL:', subscription.data.checkout_url);
+        console.log('🔗 REDIRECTING USER TO STRIPE CHECKOUT URL:', subscription.data.checkout_url);
         
         // Set redirect state
         setIsRedirectingToStripe(true);
@@ -159,8 +135,7 @@ export default function PaywallScreen() {
         }
       } else {
         // Mock subscription (test mode)
-        console.log('🔗 MOCK SUBSCRIPTION - TEST MODE');
-        // Navigate to success screen for mock subscriptions too
+        console.log('🔗 MOCK SUBSCRIPTION - TEST MODE (no checkout URL)');
         router.replace('/subscription-success');
       }
     } catch (error) {
@@ -176,11 +151,9 @@ export default function PaywallScreen() {
       const result = await freeTrialService.startFreeTrial();
       
       if (result.success) {
-        console.log('Free trial started successfully');
         // Navigate to main app with limited access
         router.push('/(tabs)');
       } else {
-        console.error('Free trial failed:', result.error);
         Alert.alert('Free Trial Unavailable', result.error || 'Failed to start free trial. Please try again.');
       }
     } catch (error) {
@@ -189,27 +162,7 @@ export default function PaywallScreen() {
     }
   };
 
-  const handleTestBackend = async () => {
-    try {
-      // Test the simple payment service
-      const testCards = simplePaymentService.getTestCards();
-      console.log('Test cards available:', testCards);
-      Alert.alert('Test Complete', 'Check console for test card information');
-    } catch (error) {
-      console.error('Test error:', error);
-      Alert.alert('Test Error', 'Failed to test payment service.');
-    }
-  };
 
-  const handleCheckSubscriptionStatus = async () => {
-    try {
-      console.log('🔍 MANUAL CHECK: Checking subscription status...');
-      await checkSubscriptionStatusAfterStripe();
-    } catch (error) {
-      console.error('❌ Manual check error:', error);
-      Alert.alert('Error', 'Failed to check subscription status.');
-    }
-  };
 
   const tiers = [
     {
@@ -315,17 +268,7 @@ export default function PaywallScreen() {
               </Text>
             </TouchableOpacity>
             
-            {/* Test Backend Button */}
-            <TouchableOpacity style={styles.btnTestBackend} onPress={handleTestBackend}>
-              <Text style={styles.btnTestBackendText}>Test Backend Subscription</Text>
-            </TouchableOpacity>
-            
-            {/* Manual Check Subscription Status Button */}
-            {isRedirectingToStripe && (
-              <TouchableOpacity style={styles.btnCheckStatus} onPress={handleCheckSubscriptionStatus}>
-                <Text style={styles.btnCheckStatusText}>Check Subscription Status</Text>
-              </TouchableOpacity>
-            )}
+
           </View>
         </View>
       </ScrollView>
@@ -633,39 +576,5 @@ const styles = StyleSheet.create({
     color: '#2E2C58',
     letterSpacing: 0.5,
   },
-  btnTestBackend: {
-    width: '100%',
-    padding: 12,
-    borderRadius: 8,
-    backgroundColor: '#FF6B6B',
-    alignItems: 'center',
-    marginTop: 10,
-  },
-  btnTestBackendText: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-  },
-  btnCheckStatus: {
-    width: '85%',
-    maxWidth: 320,
-    padding: 15,
-    borderRadius: 12,
-    backgroundColor: '#4A90E2',
-    alignItems: 'center',
-    marginTop: 10,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  btnCheckStatusText: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-  },
+
 }); 

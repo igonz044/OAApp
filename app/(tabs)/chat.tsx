@@ -113,10 +113,7 @@ export default function ChatScreen() {
 
   // Debug: Monitor messages changes
   useEffect(() => {
-    console.log('Messages state updated:', messages.length, 'messages');
-    messages.forEach((msg, index) => {
-      console.log(`Message ${index}:`, msg.text.substring(0, 50) + '...', 'isUser:', msg.isUser);
-    });
+    
   }, [messages]);
 
   const sendMessage = async () => {
@@ -197,7 +194,7 @@ export default function ChatScreen() {
           }
         }
 
-        console.log('Sending message to AI...');
+  
         const response = await aiChatService.sendMessage({
           message: userMessage.text,
           conversation_id: conversationId || undefined,
@@ -208,19 +205,7 @@ export default function ChatScreen() {
           } : undefined,
         });
         
-        console.log('AI Response received:', {
-          success: response.success,
-          message: response.message,
-          error: response.error,
-          conversation_id: response.conversation_id
-        });
-        
-        // Debug: Check if we have a valid message
-        if (response.success && response.message) {
-          console.log('✅ Valid AI response found:', response.message.substring(0, 100) + '...');
-        } else {
-          console.log('❌ No valid AI response:', response);
-        }
+
 
         if (response.success && response.message) {
           const aiMessage: Message = {
@@ -230,10 +215,8 @@ export default function ChatScreen() {
             timestamp: new Date(),
           };
           
-          console.log('Adding AI message to chat:', aiMessage);
           setMessages(prev => {
             const newMessages = [...prev, aiMessage];
-            console.log('Updated messages count:', newMessages.length);
             return newMessages;
           });
           

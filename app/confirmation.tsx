@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     SafeAreaView,
     StyleSheet,
@@ -7,8 +7,25 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
+import { notificationService } from '../utils/notificationService';
 
 export default function ConfirmationScreen() {
+  const [reminderText, setReminderText] = useState('30 minutes');
+
+  useEffect(() => {
+    // Get user's notification preferences and set the reminder text
+    const preferences = notificationService.getPreferences();
+    if (preferences.enabled && preferences.reminderTimes.length > 0) {
+      const reminderTime = preferences.reminderTimes[0];
+      const text = reminderTime === 60 ? '1 hour' : 
+                   reminderTime === 1440 ? '1 day' : 
+                   `${reminderTime} minutes`;
+      setReminderText(text);
+    } else {
+      setReminderText('when enabled in settings');
+    }
+  }, []);
+
   const handleGoHome = () => {
     router.push('/(tabs)');
   };
@@ -27,7 +44,7 @@ export default function ConfirmationScreen() {
             Your wellness coaching session has been successfully scheduled.
           </Text>
           <Text style={styles.reminder}>
-            You'll receive a reminder 30 minutes before your session.
+            You'll receive a reminder {reminderText} before your session.
           </Text>
         </View>
         

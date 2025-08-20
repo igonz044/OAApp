@@ -97,17 +97,18 @@ export const SessionsProvider: React.FC<SessionsProviderProps> = ({ children }) 
       createdAt: new Date(),
     };
 
+    
+
     const updatedSessions = [...sessions, newSession];
     setSessions(updatedSessions);
     saveSessions(updatedSessions);
 
-    // Schedule notifications for the new session
-    try {
-      await notificationService.scheduleSessionNotifications(newSession);
-      console.log('Notifications scheduled for new session');
-    } catch (error) {
-      console.error('Error scheduling notifications for session:', error);
-    }
+            // Schedule notifications for the new session
+        try {
+          await notificationService.scheduleSessionNotifications(newSession);
+        } catch (error) {
+          console.error('❌ Error scheduling notifications for session:', error);
+        }
   };
 
   const updateSession = (id: string, updates: Partial<CoachingSession>) => {
@@ -126,7 +127,7 @@ export const SessionsProvider: React.FC<SessionsProviderProps> = ({ children }) 
     // Cancel notifications for the deleted session
     try {
       await notificationService.cancelSessionNotifications(id);
-      console.log('Notifications cancelled for deleted session');
+      
     } catch (error) {
       console.error('Error cancelling notifications for session:', error);
     }
@@ -186,7 +187,7 @@ export const SessionsProvider: React.FC<SessionsProviderProps> = ({ children }) 
     if (sessionsChanged || sessionsToKeep.length !== sessions.length) {
       const deletedCount = sessions.length - sessionsToKeep.length;
       if (deletedCount > 0) {
-        console.log(`Cleaned up ${deletedCount} old sessions`);
+
       }
       
       // Increment session count for newly completed sessions
@@ -194,7 +195,7 @@ export const SessionsProvider: React.FC<SessionsProviderProps> = ({ children }) 
         for (let i = 0; i < newlyCompletedSessions; i++) {
           userActivityService.incrementSessionCount();
         }
-        console.log(`Marked ${newlyCompletedSessions} sessions as completed`);
+
       }
       
       setSessions(sessionsToKeep);

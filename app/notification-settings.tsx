@@ -49,56 +49,7 @@ export default function NotificationSettingsScreen() {
     await notificationService.updatePreferences(newPreferences);
   };
 
-  const handleTestNotification = async () => {
-    try {
-      setIsLoading(true);
-      await notificationService.sendTestNotification();
-      Alert.alert('Test Notification', 'A test notification has been sent! Check your device for the notification.');
-    } catch (error) {
-      Alert.alert('Error', 'Failed to send test notification. Please check your notification permissions.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
-  const handleDebugNotifications = async () => {
-    try {
-      setIsLoading(true);
-      await notificationService.debugScheduledNotifications();
-      await loadScheduledNotifications(); // Refresh the list
-      Alert.alert('Debug Complete', 'Check the console for detailed notification information.');
-    } catch (error) {
-      Alert.alert('Error', 'Failed to debug notifications');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleClearAllNotifications = async () => {
-    Alert.alert(
-      'Clear All Notifications',
-      'Are you sure you want to cancel all scheduled notifications?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Clear All',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              setIsLoading(true);
-              await notificationService.cancelAllNotifications();
-              await loadScheduledNotifications(); // Refresh the list
-              Alert.alert('Success', 'All scheduled notifications have been cleared.');
-            } catch (error) {
-              Alert.alert('Error', 'Failed to clear notifications');
-            } finally {
-              setIsLoading(false);
-            }
-          },
-        },
-      ]
-    );
-  };
 
   const getReminderTimeText = (minutes: number) => {
     if (minutes === 60) return '1 hour';
@@ -214,46 +165,7 @@ export default function NotificationSettingsScreen() {
             </TouchableOpacity>
           </View>
 
-          {/* Testing & Debug */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Testing & Debug</Text>
-            
-            <TouchableOpacity
-              style={[styles.actionButton, styles.testButton]}
-              onPress={handleTestNotification}
-              disabled={isLoading}
-            >
-              {isLoading ? (
-                <ActivityIndicator size="small" color="#FFFFFF" />
-              ) : (
-                <Text style={styles.actionButtonText}>Send Test Notification</Text>
-              )}
-            </TouchableOpacity>
 
-            <TouchableOpacity
-              style={[styles.actionButton, styles.debugButton]}
-              onPress={handleDebugNotifications}
-              disabled={isLoading}
-            >
-              {isLoading ? (
-                <ActivityIndicator size="small" color="#FFFFFF" />
-              ) : (
-                <Text style={styles.actionButtonText}>Debug Notifications</Text>
-              )}
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.actionButton, styles.clearButton]}
-              onPress={handleClearAllNotifications}
-              disabled={isLoading}
-            >
-              {isLoading ? (
-                <ActivityIndicator size="small" color="#FFFFFF" />
-              ) : (
-                <Text style={styles.actionButtonText}>Clear All Notifications</Text>
-              )}
-            </TouchableOpacity>
-          </View>
 
           {/* Scheduled Notifications */}
           <View style={styles.section}>
@@ -404,15 +316,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 12,
   },
-  testButton: {
-    backgroundColor: '#A9C3B1',
-  },
-  debugButton: {
-    backgroundColor: '#4A90E2',
-  },
-  clearButton: {
-    backgroundColor: '#E8B4B8',
-  },
+
   actionButtonText: {
     color: '#FFFFFF',
     fontSize: 16,

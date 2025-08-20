@@ -113,9 +113,17 @@ export class NotificationService {
       goal: session.goal,
       sessionTime: sessionTime.toISOString(),
       sessionTimeReadable: sessionTime.toLocaleString(),
+      sessionTimeHours: sessionTime.getHours(),
+      sessionTimeMinutes: sessionTime.getMinutes(),
+      sessionTimeDate: sessionTime.toDateString(),
       currentTime: now.toISOString(),
       currentTimeReadable: now.toLocaleString(),
-      reminderTimes: this.preferences.reminderTimes
+      currentTimeHours: now.getHours(),
+      currentTimeMinutes: now.getMinutes(),
+      currentTimeDate: now.toDateString(),
+      reminderTimes: this.preferences.reminderTimes,
+      timeDifference: sessionTime.getTime() - now.getTime(),
+      timeDifferenceMinutes: Math.round((sessionTime.getTime() - now.getTime()) / (1000 * 60))
     });
 
     if (!this.preferences.enabled) {
@@ -126,12 +134,36 @@ export class NotificationService {
     // Check if session is in the future
     if (sessionTime <= now) {
       console.log('❌ Session is in the past or happening now - no notifications scheduled');
+      console.log('❌ Session time:', sessionTime.toLocaleString());
+      console.log('❌ Current time:', now.toLocaleString());
+      console.log('❌ Time difference (ms):', sessionTime.getTime() - now.getTime());
+      return;
+    }
+
+    // Add a minimum buffer to prevent immediate notifications
+    const minimumBufferMinutes = 5; // Don't schedule notifications if session is less than 5 minutes away
+    const timeUntilSession = (sessionTime.getTime() - now.getTime()) / (1000 * 60);
+    
+    if (timeUntilSession < minimumBufferMinutes) {
+      console.log(`❌ Session is too soon (${Math.round(timeUntilSession)} minutes away) - no notifications scheduled`);
+      console.log(`❌ Minimum buffer required: ${minimumBufferMinutes} minutes`);
       return;
     }
 
     try {
       // Cancel any existing notifications for this session
       await this.cancelSessionNotifications(session.id);
+      
+      // Debug: Check all scheduled notifications before scheduling new ones
+      const existingNotifications = await Notifications.getAllScheduledNotificationsAsync();
+      console.log(`🔍 Found ${existingNotifications.length} existing scheduled notifications before scheduling new ones`);
+      existingNotifications.forEach((notification, index) => {
+        console.log(`🔍 Existing notification ${index + 1}:`, {
+          identifier: notification.identifier,
+          title: notification.content.title,
+          trigger: notification.trigger
+        });
+      });
 
       // Schedule notifications for each reminder time
       for (const minutesBefore of this.preferences.reminderTimes) {
@@ -151,6 +183,9 @@ export class NotificationService {
           console.log(`✅ Scheduled ${minutesBefore}min reminder successfully for ${notificationTime.toLocaleString()}`);
         } else {
           console.log(`⏭️ Skipping ${minutesBefore}min reminder - notification time (${notificationTime.toLocaleString()}) is in the past`);
+          console.log(`⏭️ Notification time: ${notificationTime.toLocaleString()}`);
+          console.log(`⏭️ Current time: ${now.toLocaleString()}`);
+          console.log(`⏭️ Time difference: ${(notificationTime.getTime() - now.getTime()) / (1000 * 60)} minutes`);
         }
       }
 
@@ -166,26 +201,98 @@ export class NotificationService {
     notificationTime: Date, 
     minutesBefore: number
   ): Promise<void> {
-    const identifier = await Notifications.scheduleNotificationAsync({
-      content: {
-        title: `Coaching Session Reminder`,
-        body: this.getNotificationBody(session, minutesBefore),
-        data: {
-          sessionId: session.id,
-          sessionType: session.sessionType,
-          goal: session.goal,
-          minutesBefore,
-        },
-        sound: this.preferences.sound ? 'default' : undefined,
-        priority: Notifications.AndroidNotificationPriority.HIGH,
-      },
-      trigger: {
-        date: notificationTime,
-        channelId: 'coaching-sessions',
-      },
+    const now = new Date();
+    const timeUntilNotification = (notificationTime.getTime() - now.getTime()) / (1000 * 60);
+    
+    console.log(`🔔 Scheduling notification details:`, {
+      sessionId: session.id,
+      sessionGoal: session.goal,
+      sessionTime: session.fullDate.toLocaleString(),
+      notificationTime: notificationTime.toLocaleString(),
+      notificationTimeISO: notificationTime.toISOString(),
+      currentTime: now.toLocaleString(),
+      currentTimeISO: now.toISOString(),
+      minutesBefore,
+      timeUntilNotification: Math.round(timeUntilNotification),
+      notificationBody: this.getNotificationBody(session, minutesBefore)
     });
 
-    console.log(`Scheduled notification ${identifier} for ${minutesBefore} minutes before session`);
+    // Double-check that notification time is in the future
+    if (notificationTime <= now) {
+      console.log(`❌ ERROR: Attempting to schedule notification for past time!`);
+      console.log(`❌ Notification time: ${notificationTime.toLocaleString()}`);
+      console.log(`❌ Current time: ${now.toLocaleString()}`);
+      console.log(`❌ Time difference: ${timeUntilNotification} minutes`);
+      return;
+    }
+
+    try {
+      // Try scheduling with a simpler trigger first
+      const notificationRequest = {
+        content: {
+          title: `Coaching Session Reminder`,
+          body: this.getNotificationBody(session, minutesBefore),
+          data: {
+            sessionId: session.id,
+            sessionType: session.sessionType,
+            goal: session.goal,
+            minutesBefore,
+          },
+          sound: this.preferences.sound ? 'default' : undefined,
+          priority: Notifications.AndroidNotificationPriority.HIGH,
+        },
+        trigger: {
+          type: 'date' as const,
+          date: notificationTime,
+        },
+      };
+
+      console.log(`🔔 Attempting to schedule notification with request:`, {
+        trigger: notificationRequest.trigger,
+        content: {
+          title: notificationRequest.content.title,
+          body: notificationRequest.content.body,
+          data: notificationRequest.content.data
+        }
+      });
+
+      const identifier = await Notifications.scheduleNotificationAsync(notificationRequest as any);
+
+      console.log(`✅ Successfully scheduled notification ${identifier} for ${minutesBefore} minutes before session`);
+      console.log(`✅ Notification will fire at: ${notificationTime.toLocaleString()}`);
+      console.log(`✅ Time until notification: ${Math.round(timeUntilNotification)} minutes`);
+      
+      // Verify the scheduled notification immediately
+      try {
+        const scheduledNotifications = await Notifications.getAllScheduledNotificationsAsync();
+        console.log(`🔍 Found ${scheduledNotifications.length} total scheduled notifications`);
+        
+        const thisNotification = scheduledNotifications.find(n => n.identifier === identifier);
+        if (thisNotification) {
+          console.log(`🔍 Verification - Scheduled notification found:`, {
+            identifier: thisNotification.identifier,
+            trigger: thisNotification.trigger,
+            content: thisNotification.content.title,
+            scheduledFor: thisNotification.trigger && 'date' in thisNotification.trigger ? new Date(thisNotification.trigger.date).toLocaleString() : 'Unknown'
+          });
+        } else {
+          console.log(`❌ Verification - Scheduled notification not found!`);
+          console.log(`❌ Available notifications:`, scheduledNotifications.map(n => ({
+            identifier: n.identifier,
+            title: n.content.title,
+            trigger: n.trigger
+          })));
+        }
+      } catch (verifyError) {
+        console.error(`❌ Error verifying scheduled notification:`, verifyError);
+      }
+    } catch (error) {
+      console.error(`❌ Error scheduling notification:`, error);
+      console.error(`❌ Error details:`, {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : 'No stack trace'
+      });
+    }
   }
 
   // Get notification body text
@@ -252,24 +359,65 @@ export class NotificationService {
   async sendTestNotification(): Promise<void> {
     try {
       console.log('🧪 Sending test notification...');
-      await Notifications.scheduleNotificationAsync({
+      
+      // Test with immediate trigger
+      const testNotification = {
         content: {
           title: 'Test Notification',
           body: 'This is a test notification from your wellness app!',
           data: { test: true },
         },
-        trigger: { seconds: 2 },
-      } as any);
-      console.log('✅ Test notification scheduled successfully');
+        trigger: { 
+          type: 'timeInterval' as const,
+          seconds: 5 
+        }, // 5 seconds from now
+      };
+
+      console.log('🧪 Scheduling test notification with trigger:', testNotification.trigger);
+      
+      const identifier = await Notifications.scheduleNotificationAsync(testNotification as any);
+      console.log('✅ Test notification scheduled successfully with ID:', identifier);
+      
+      // Verify the test notification was scheduled
+      setTimeout(async () => {
+        try {
+          const scheduledNotifications = await Notifications.getAllScheduledNotificationsAsync();
+          const testNotification = scheduledNotifications.find(n => n.identifier === identifier);
+          if (testNotification) {
+            console.log('🧪 Test notification verification successful:', {
+              identifier: testNotification.identifier,
+              trigger: testNotification.trigger
+            });
+          } else {
+            console.log('❌ Test notification not found in scheduled notifications!');
+          }
+        } catch (error) {
+          console.error('❌ Error verifying test notification:', error);
+        }
+      }, 1000);
+      
     } catch (error) {
       console.error('❌ Error sending test notification:', error);
+      console.error('❌ Error details:', {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : 'No stack trace'
+      });
     }
   }
 
   // Debug function to list all scheduled notifications
   async debugScheduledNotifications(): Promise<void> {
     try {
-      console.log('🔍 Checking scheduled notifications...');
+      console.log('🔍 Checking notification system status...');
+      
+      // Check permissions
+      const permissions = await Notifications.getPermissionsAsync();
+      console.log('🔍 Notification permissions:', permissions);
+      
+      // Check if notifications are enabled (this method might not exist in all versions)
+      console.log('🔍 Notification settings check not available in this version');
+      
+      // Check scheduled notifications
       const notifications = await this.getScheduledNotifications();
       console.log(`📋 Found ${notifications.length} scheduled notifications:`);
       
@@ -280,8 +428,15 @@ export class NotificationService {
         console.log(`   Body: ${notification.content.body}`);
         console.log(`   Data:`, data);
         console.log(`   Trigger:`, notification.trigger);
+        if (notification.trigger && 'date' in notification.trigger) {
+          console.log(`   Scheduled for: ${new Date(notification.trigger.date).toLocaleString()}`);
+        }
         console.log('---');
       });
+      
+      // Check user preferences
+      console.log('🔍 User notification preferences:', this.preferences);
+      
     } catch (error) {
       console.error('❌ Error checking scheduled notifications:', error);
     }

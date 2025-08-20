@@ -56,15 +56,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             const subscriptionResponse = await simplePaymentService.getSubscriptionDetails();
             if (subscriptionResponse.data?.status === 'active') {
               // User has active subscription - go directly to main app
-              console.log('User has active subscription - navigating to main app');
               router.replace('/(tabs)');
             } else {
               // No active subscription - go to paywall
-              console.log('No active subscription - navigating to paywall');
               router.replace('/paywall');
             }
           } catch (subscriptionError) {
-            console.log('Error checking subscription status, defaulting to paywall:', subscriptionError);
             // If we can't check subscription status, default to paywall
             router.replace('/paywall');
           }
@@ -94,15 +91,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           const subscriptionResponse = await simplePaymentService.getSubscriptionDetails();
           if (subscriptionResponse.data?.status === 'active') {
             // User has active subscription - go directly to main app
-            console.log('User has active subscription - navigating to main app');
             router.replace('/(tabs)');
           } else {
             // No active subscription - go to paywall
-            console.log('No active subscription - navigating to paywall');
             router.replace('/paywall');
           }
         } catch (subscriptionError) {
-          console.log('Error checking subscription status, defaulting to paywall:', subscriptionError);
           // If we can't check subscription status, default to paywall
           router.replace('/paywall');
         }
@@ -139,7 +133,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setIsAuthenticated(true);
         
         // New users always go to paywall (they won't have subscriptions yet)
-        console.log('New user - navigating to paywall');
         router.replace('/paywall');
       }
       
