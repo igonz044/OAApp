@@ -1,5 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { simplePaymentService } from './simplePaymentService';
+import { authService } from './authService';
+import { freeTrialService } from './freeTrialService';
 
 // Simple subscription status interface
 interface SubscriptionStatus {
@@ -49,16 +51,75 @@ export const PaymentProvider: React.FC<PaymentProviderProps> = ({ children }) =>
       
       if (testMode) {
         console.log('Running in test mode - using mock data');
+        // Set default status for test mode
+        const status: SubscriptionStatus = {
+          isActive: false,
+          tier: '',
+          status: 'inactive',
+          currentPeriodEnd: 0,
+        };
+        setSubscriptionStatus(status);
+        return;
       }
       
-      // For now, return a default status since we're using the simple service
-      const status: SubscriptionStatus = {
-        isActive: false,
-        tier: '',
-        status: 'inactive',
-        currentPeriodEnd: 0,
-      };
-      setSubscriptionStatus(status);
+      // Try to get real subscription status from API
+      try {
+        const response = await simplePaymentService.getSubscriptionDetails();
+        if (response.data) {
+          const status: SubscriptionStatus = {
+            isActive: response.data.status === 'active',
+            tier: response.data.tier || '',
+            status: response.data.status || 'inactive',
+            currentPeriodEnd: response.data.currentPeriodEnd || 0,
+          };
+          setSubscriptionStatus(status);
+          
+          // Update user profile with subscription status
+          await authService.updateSubscriptionStatus({
+            status: response.data.status || 'inactive',
+            tier: response.data.tier || '',
+            currentPeriodEnd: response.data.currentPeriodEnd || 0,
+          });
+
+          // Clear free trial data if user has active subscription
+          if (response.data.status === 'active') {
+            await freeTrialService.clearFreeTrialOnSubscription();
+          }
+        } else {
+          // No subscription found
+          const noSubscriptionStatus = {
+            isActive: false,
+            tier: '',
+            status: 'inactive',
+            currentPeriodEnd: 0,
+          };
+          setSubscriptionStatus(noSubscriptionStatus);
+          
+          // Update user profile to clear subscription status
+          await authService.updateSubscriptionStatus({
+            status: 'inactive',
+            tier: '',
+            currentPeriodEnd: 0,
+          });
+        }
+      } catch (apiError) {
+        console.log('No active subscription found or API error:', apiError);
+        // Set default status when no subscription exists
+        const defaultStatus = {
+          isActive: false,
+          tier: '',
+          status: 'inactive',
+          currentPeriodEnd: 0,
+        };
+        setSubscriptionStatus(defaultStatus);
+        
+        // Update user profile to clear subscription status
+        await authService.updateSubscriptionStatus({
+          status: 'inactive',
+          tier: '',
+          currentPeriodEnd: 0,
+        });
+      }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to load subscription status';
       setError(errorMessage);

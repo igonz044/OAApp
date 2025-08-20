@@ -27,10 +27,11 @@ export default function LoginScreen() {
   const [mainGoal, setMainGoal] = useState('');
   const [error, setError] = useState('');
 
-  // Redirect to paywall if already authenticated
+  // Let auth context handle navigation for authenticated users
   useEffect(() => {
     if (isAuthenticated) {
-      router.replace('/paywall');
+      // Auth context will handle navigation based on subscription status
+      console.log('User is authenticated - auth context will handle navigation');
     }
   }, [isAuthenticated]);
 

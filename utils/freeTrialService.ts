@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { simplePaymentService } from './simplePaymentService';
 
 export interface FreeTrialStatus {
   isActive: boolean;
@@ -15,9 +16,27 @@ class FreeTrialService {
   private readonly TRIAL_START_KEY = 'free_trial_start_date';
   private readonly LAST_RESET_DATE_KEY = 'last_message_reset_date';
 
+  // Check if user has active subscription
+  async hasActiveSubscription(): Promise<boolean> {
+    try {
+      const response = await simplePaymentService.getSubscriptionDetails();
+      return response.data?.status === 'active';
+    } catch (error) {
+      console.log('No active subscription found:', error);
+      return false;
+    }
+  }
+
   // Check if user is on free trial
   async isOnFreeTrial(): Promise<boolean> {
     try {
+      // First check if user has active subscription - if yes, no free trial
+      const hasSubscription = await this.hasActiveSubscription();
+      if (hasSubscription) {
+        console.log('User has active subscription - no free trial access');
+        return false;
+      }
+
       const trialStartDate = await AsyncStorage.getItem(this.TRIAL_START_KEY);
       if (!trialStartDate) return false;
 
@@ -33,15 +52,29 @@ class FreeTrialService {
   }
 
   // Start free trial
-  async startFreeTrial(): Promise<void> {
+  async startFreeTrial(): Promise<{ success: boolean; error?: string }> {
     try {
+      // Check if user has active subscription
+      const hasSubscription = await this.hasActiveSubscription();
+      if (hasSubscription) {
+        return {
+          success: false,
+          error: 'You already have an active subscription. Free trial is not available.'
+        };
+      }
+
       const now = new Date();
       await AsyncStorage.setItem(this.TRIAL_START_KEY, now.toISOString());
       await AsyncStorage.setItem(this.MESSAGE_COUNT_KEY, '0');
       await AsyncStorage.setItem(this.LAST_RESET_DATE_KEY, now.toISOString());
       console.log('Free trial started');
+      return { success: true };
     } catch (error) {
       console.error('Error starting free trial:', error);
+      return {
+        success: false,
+        error: 'Failed to start free trial'
+      };
     }
   }
 
@@ -144,6 +177,16 @@ class FreeTrialService {
       console.log('Free trial data cleared');
     } catch (error) {
       console.error('Error clearing free trial data:', error);
+    }
+  }
+
+  // Clear free trial when user gets active subscription
+  async clearFreeTrialOnSubscription(): Promise<void> {
+    try {
+      await this.clearFreeTrialData();
+      console.log('Free trial data cleared due to active subscription');
+    } catch (error) {
+      console.error('Error clearing free trial data on subscription:', error);
     }
   }
 }

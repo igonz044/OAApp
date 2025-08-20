@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { authService, UserData, AuthResponse } from './authService';
 import { router } from 'expo-router';
+import { simplePaymentService } from './simplePaymentService';
 
 interface AuthContextType {
   user: UserData | null;
@@ -19,6 +20,11 @@ interface AuthContextType {
   }) => Promise<AuthResponse>;
   logout: () => Promise<void>;
   refreshUserData: () => Promise<void>;
+  updateSubscriptionStatus: (subscriptionData: {
+    status: string;
+    tier: string;
+    currentPeriodEnd: number;
+  }) => Promise<AuthResponse>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -44,6 +50,24 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           setUser(userData);
           setToken(accessToken);
           setIsAuthenticated(true);
+          
+          // Check if user has active subscription and navigate accordingly
+          try {
+            const subscriptionResponse = await simplePaymentService.getSubscriptionDetails();
+            if (subscriptionResponse.data?.status === 'active') {
+              // User has active subscription - go directly to main app
+              console.log('User has active subscription - navigating to main app');
+              router.replace('/(tabs)');
+            } else {
+              // No active subscription - go to paywall
+              console.log('No active subscription - navigating to paywall');
+              router.replace('/paywall');
+            }
+          } catch (subscriptionError) {
+            console.log('Error checking subscription status, defaulting to paywall:', subscriptionError);
+            // If we can't check subscription status, default to paywall
+            router.replace('/paywall');
+          }
         }
       } catch (error) {
         console.error('Auth status check error:', error);
@@ -65,8 +89,23 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setToken(response.accessToken);
         setIsAuthenticated(true);
         
-        // Navigate to paywall after successful login
-        router.replace('/paywall');
+        // Check if user has active subscription
+        try {
+          const subscriptionResponse = await simplePaymentService.getSubscriptionDetails();
+          if (subscriptionResponse.data?.status === 'active') {
+            // User has active subscription - go directly to main app
+            console.log('User has active subscription - navigating to main app');
+            router.replace('/(tabs)');
+          } else {
+            // No active subscription - go to paywall
+            console.log('No active subscription - navigating to paywall');
+            router.replace('/paywall');
+          }
+        } catch (subscriptionError) {
+          console.log('Error checking subscription status, defaulting to paywall:', subscriptionError);
+          // If we can't check subscription status, default to paywall
+          router.replace('/paywall');
+        }
       }
       
       return response;
@@ -99,7 +138,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setToken(response.accessToken);
         setIsAuthenticated(true);
         
-        // Navigate to paywall after successful signup
+        // New users always go to paywall (they won't have subscriptions yet)
+        console.log('New user - navigating to paywall');
         router.replace('/paywall');
       }
       
@@ -144,6 +184,26 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
+  const updateSubscriptionStatus = async (subscriptionData: {
+    status: string;
+    tier: string;
+    currentPeriodEnd: number;
+  }): Promise<AuthResponse> => {
+    try {
+      const response = await authService.updateSubscriptionStatus(subscriptionData);
+      if (response.success && response.user) {
+        setUser(response.user);
+      }
+      return response;
+    } catch (error) {
+      console.error('Update subscription status error:', error);
+      return {
+        success: false,
+        error: 'Failed to update subscription status'
+      };
+    }
+  };
+
   const value: AuthContextType = {
     user,
     token,
@@ -152,7 +212,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     login,
     signup,
     logout,
-    refreshUserData
+    refreshUserData,
+    updateSubscriptionStatus
   };
 
   return (

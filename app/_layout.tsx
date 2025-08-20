@@ -62,6 +62,8 @@ export default function RootLayout() {
                   <Stack.Screen name="index" />
                   <Stack.Screen name="paywall" />
                   <Stack.Screen name="simple-payment" />
+                  <Stack.Screen name="subscription-details" />
+                  <Stack.Screen name="subscription-success" />
                   <Stack.Screen name="(tabs)" />
                   <Stack.Screen name="goal-selection" />
                   <Stack.Screen name="session-type" />

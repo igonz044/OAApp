@@ -11,6 +11,9 @@ export interface UserData {
   main_goal: string;
   created_at: string;
   updated_at: string;
+  subscription_status?: string;
+  subscription_tier?: string;
+  subscription_end_date?: string;
 }
 
 export interface AuthResponse {
@@ -262,6 +265,28 @@ export const authService = {
       return {
         success: false,
         error: 'Failed to update profile'
+      };
+    }
+  },
+
+  async updateSubscriptionStatus(subscriptionData: {
+    status: string;
+    tier: string;
+    currentPeriodEnd: number;
+  }): Promise<AuthResponse> {
+    try {
+      const updates = {
+        subscription_status: subscriptionData.status,
+        subscription_tier: subscriptionData.tier,
+        subscription_end_date: new Date(subscriptionData.currentPeriodEnd * 1000).toISOString(),
+      };
+
+      return await this.updateUserProfile(updates);
+    } catch (error) {
+      console.error('Update subscription status error:', error);
+      return {
+        success: false,
+        error: 'Failed to update subscription status'
       };
     }
   },

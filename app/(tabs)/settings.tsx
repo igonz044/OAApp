@@ -43,33 +43,8 @@ export default function SettingsScreen() {
 
   const handleSubscriptionPress = async () => {
     if (subscriptionStatus?.isActive) {
-      try {
-        // Get subscription details from API
-        const subscriptionDetails = await simplePaymentService.getSubscriptionDetails();
-        const usageStats = await simplePaymentService.getUsageStatistics();
-        
-        Alert.alert(
-          'Subscription Details',
-          `Plan: ${subscriptionDetails.data?.tier || subscriptionStatus.tier}\nStatus: ${subscriptionDetails.data?.status || subscriptionStatus.status}\nRenews: ${new Date((subscriptionDetails.data?.currentPeriodEnd || subscriptionStatus.currentPeriodEnd) * 1000).toLocaleDateString()}\n\nUsage:\nSessions: ${usageStats.data?.totalSessions || 0}\nChats: ${usageStats.data?.totalChats || 0}`,
-          [
-            { text: 'Cancel', style: 'cancel' },
-            { 
-              text: 'Reactivate', 
-              onPress: async () => {
-                try {
-                  await simplePaymentService.reactivateSubscription();
-                  Alert.alert('Success', 'Subscription reactivated successfully!');
-                } catch (error) {
-                  Alert.alert('Error', 'Failed to reactivate subscription');
-                }
-              }
-            }
-          ]
-        );
-      } catch (error) {
-        console.error('Error getting subscription details:', error);
-        Alert.alert('Error', 'Failed to load subscription details');
-      }
+      // Navigate to subscription details screen
+      router.push('/subscription-details' as any);
     } else {
       // Navigate to paywall
       router.push('/paywall');

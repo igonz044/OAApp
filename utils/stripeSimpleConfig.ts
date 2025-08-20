@@ -35,6 +35,7 @@ export const TEST_CARDS = {
 export const SIMPLE_API_ENDPOINTS = {
   createSubscription: '/api/subscriptions/create',
   getSubscriptionDetails: '/api/subscriptions/details',
+  cancelSubscription: '/api/subscriptions/cancel',
   reactivateSubscription: '/api/subscriptions/reactivate',
   getUsageStatistics: '/api/subscriptions/usage',
 };

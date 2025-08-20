@@ -88,11 +88,14 @@ export class SimplePaymentService {
   async getSubscriptionDetails() {
     try {
       console.log('📋 Getting subscription details...');
+      console.log('🔗 API URL:', `${this.baseUrl}${SIMPLE_API_ENDPOINTS.getSubscriptionDetails}`);
       
       const accessToken = await AsyncStorage.getItem('accessToken');
       if (!accessToken) {
         throw new Error('No access token available');
       }
+      
+      console.log('🔑 Access token present:', !!accessToken);
       
       const response = await fetch(`${this.baseUrl}${SIMPLE_API_ENDPOINTS.getSubscriptionDetails}`, {
         method: 'GET',
@@ -102,6 +105,9 @@ export class SimplePaymentService {
         },
       });
 
+      console.log('📡 Response status:', response.status);
+      console.log('📡 Response headers:', Object.fromEntries(response.headers.entries()));
+
       if (!response.ok) {
         const errorText = await response.text();
         console.error('❌ Get subscription details failed:', errorText);
@@ -110,10 +116,47 @@ export class SimplePaymentService {
 
       const data = await response.json();
       console.log('🔐 SUBSCRIPTION DETAILS API RESPONSE:', JSON.stringify(data, null, 2));
-      console.log('✅ Subscription details retrieved:', data);
+      console.log('✅ Subscription details retrieved successfully');
+      console.log('📊 Subscription status:', data.data?.status);
+      console.log('📊 Subscription tier:', data.data?.tier);
+      console.log('📊 Current period end:', data.data?.currentPeriodEnd);
       return data;
     } catch (error) {
       console.error('❌ Get subscription details error:', error);
+      throw error;
+    }
+  }
+
+  // Cancel subscription
+  async cancelSubscription() {
+    try {
+      console.log('🔄 Canceling subscription...');
+      
+      const accessToken = await AsyncStorage.getItem('accessToken');
+      if (!accessToken) {
+        throw new Error('No access token available');
+      }
+      
+      const response = await fetch(`${this.baseUrl}${SIMPLE_API_ENDPOINTS.cancelSubscription}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`,
+        },
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ Cancel subscription failed:', errorText);
+        throw new Error(`Cancel subscription failed: ${response.status} - ${errorText}`);
+      }
+
+      const data = await response.json();
+      console.log('🔐 CANCEL SUBSCRIPTION API RESPONSE:', JSON.stringify(data, null, 2));
+      console.log('✅ Subscription canceled:', data);
+      return data;
+    } catch (error) {
+      console.error('❌ Cancel subscription error:', error);
       throw error;
     }
   }
