@@ -2,6 +2,7 @@ import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import { Platform } from 'react-native';
 import { CoachingSession } from './sessionsContext';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Configure notification behavior
 Notifications.setNotificationHandler({
@@ -29,6 +30,7 @@ export class NotificationService {
     sound: true,
     vibration: true,
   };
+  private readonly PREFERENCES_KEY = 'notification_preferences';
 
   private constructor() {}
 
@@ -42,6 +44,9 @@ export class NotificationService {
   // Initialize notification permissions and settings
   async initialize(): Promise<boolean> {
     try {
+      // Load saved preferences
+      await this.loadPreferences();
+
       // Request permissions
       const { status: existingStatus } = await Notifications.getPermissionsAsync();
       let finalStatus = existingStatus;
@@ -75,17 +80,52 @@ export class NotificationService {
     }
   }
 
+  // Load preferences from AsyncStorage
+  private async loadPreferences(): Promise<void> {
+    try {
+      const savedPreferences = await AsyncStorage.getItem(this.PREFERENCES_KEY);
+      if (savedPreferences) {
+        this.preferences = { ...this.preferences, ...JSON.parse(savedPreferences) };
+        console.log('Loaded notification preferences:', this.preferences);
+      }
+    } catch (error) {
+      console.error('Error loading notification preferences:', error);
+    }
+  }
+
+  // Save preferences to AsyncStorage
+  private async savePreferences(): Promise<void> {
+    try {
+      await AsyncStorage.setItem(this.PREFERENCES_KEY, JSON.stringify(this.preferences));
+      console.log('Saved notification preferences:', this.preferences);
+    } catch (error) {
+      console.error('Error saving notification preferences:', error);
+    }
+  }
+
   // Schedule notifications for a coaching session
   async scheduleSessionNotifications(session: CoachingSession): Promise<void> {
+    const now = new Date();
+    const sessionTime = session.fullDate;
+    
     console.log('🔔 Scheduling notifications for session:', {
       id: session.id,
       goal: session.goal,
-      sessionTime: session.fullDate.toISOString(),
+      sessionTime: sessionTime.toISOString(),
+      sessionTimeReadable: sessionTime.toLocaleString(),
+      currentTime: now.toISOString(),
+      currentTimeReadable: now.toLocaleString(),
       reminderTimes: this.preferences.reminderTimes
     });
 
     if (!this.preferences.enabled) {
       console.log('❌ Notifications disabled, skipping scheduling');
+      return;
+    }
+
+    // Check if session is in the future
+    if (sessionTime <= now) {
+      console.log('❌ Session is in the past or happening now - no notifications scheduled');
       return;
     }
 
@@ -95,16 +135,22 @@ export class NotificationService {
 
       // Schedule notifications for each reminder time
       for (const minutesBefore of this.preferences.reminderTimes) {
-        const notificationTime = new Date(session.fullDate.getTime() - (minutesBefore * 60 * 1000));
+        const notificationTime = new Date(sessionTime.getTime() - (minutesBefore * 60 * 1000));
         
-        console.log(`⏰ Scheduling ${minutesBefore}min reminder for:`, notificationTime.toISOString());
+        console.log(`⏰ Calculating ${minutesBefore}min reminder:`, {
+          sessionTime: sessionTime.toISOString(),
+          notificationTime: notificationTime.toISOString(),
+          notificationTimeReadable: notificationTime.toLocaleString(),
+          currentTime: now.toISOString(),
+          isInFuture: notificationTime > now
+        });
         
         // Only schedule if the notification time is in the future
-        if (notificationTime > new Date()) {
+        if (notificationTime > now) {
           await this.scheduleNotification(session, notificationTime, minutesBefore);
-          console.log(`✅ Scheduled ${minutesBefore}min reminder successfully`);
+          console.log(`✅ Scheduled ${minutesBefore}min reminder successfully for ${notificationTime.toLocaleString()}`);
         } else {
-          console.log(`⏭️ Skipping ${minutesBefore}min reminder - time has passed`);
+          console.log(`⏭️ Skipping ${minutesBefore}min reminder - notification time (${notificationTime.toLocaleString()}) is in the past`);
         }
       }
 
@@ -191,9 +237,10 @@ export class NotificationService {
   }
 
   // Update notification preferences
-  updatePreferences(preferences: Partial<NotificationPreferences>): void {
+  async updatePreferences(preferences: Partial<NotificationPreferences>): Promise<void> {
     this.preferences = { ...this.preferences, ...preferences };
     console.log('Updated notification preferences:', this.preferences);
+    await this.savePreferences();
   }
 
   // Get current preferences

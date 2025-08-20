@@ -12,7 +12,6 @@ import {
 } from 'react-native';
 import { usePayment } from '../../utils/paymentContext';
 import { useAuth } from '../../utils/authContext';
-import { notificationService } from '../../utils/notificationService';
 import { simplePaymentService } from '../../utils/simplePaymentService';
 
 export default function SettingsScreen() {
@@ -27,6 +26,8 @@ export default function SettingsScreen() {
       Linking.openURL(privacyUrl).catch((err) => {
         Alert.alert('Error', 'Unable to open Privacy Policy');
       });
+    } else if (setting === 'Notifications') {
+      router.push('/notification-settings');
     } else if (setting === 'Help & Support') {
       const supportEmail = 'ousauris@gmail.com';
       const subject = 'OusAuris App Support';
@@ -133,6 +134,14 @@ export default function SettingsScreen() {
             <Text style={[styles.subscriptionStatus, { color: getSubscriptionColor() }]}>
               {getSubscriptionText()}
             </Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            style={styles.settingsItem}
+            onPress={() => handleSettingPress('Notifications')}
+          >
+            <Text style={styles.settingsText}>Notifications</Text>
+            <Text style={styles.arrow}>→</Text>
           </TouchableOpacity>
           
           <TouchableOpacity 
